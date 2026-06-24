@@ -1,9 +1,30 @@
 # Cloudflare resources.
 #
-# Single workspace because we manage a single apex domain in a single
-# Cloudflare account. Environment separation (e.g. staging.<domain> vs
-# <domain>, app-staging Worker vs app Worker) lives at the resource level
-# inside this workspace, typically via for_each over an "environments" map.
-#
-# Split into per-env workspaces only if we later add a second apex domain
-# dedicated to staging, or move staging into a separate Cloudflare account.
+# Identifiers (account_id, zone_id, apex domain) are non-credentials and live
+# here as locals for readability — see docs/secrets.md "Things that look like
+# secrets but aren't." The sensitive API token lives in HCP Terraform as a
+# workspace variable and is consumed via var.cloudflare_api_token.
+
+locals {
+  domain     = "perish.dev"
+  account_id = "d8a72309e747515805b614574ea7f323"
+  zone_id    = "78ff9bdc9f1a38c01a935d3d079b1e7b"
+}
+
+# The zone already exists; import it so Terraform manages it without
+# attempting to create a new one on the first apply.
+import {
+  to = cloudflare_zone.this
+  id = local.zone_id
+}
+
+resource "cloudflare_zone" "this" {
+  account = { id = local.account_id }
+  name    = local.domain
+  type    = "full"
+}
+
+# Records, Workers, R2 buckets, Pages, etc. are discovered and emitted by
+# scripts/cf_discover.py into separate files (e.g. dns.tf, workers.tf).
+# That script is the source of truth for "what currently exists"; commit
+# its output and review the diff.

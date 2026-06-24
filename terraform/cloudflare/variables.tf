@@ -3,8 +3,3 @@ variable "cloudflare_api_token" {
   type        = string
   sensitive   = true
 }
-
-variable "cloudflare_account_id" {
-  description = "Cloudflare account ID. Not a secret."
-  type        = string
-}
