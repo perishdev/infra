@@ -18,9 +18,22 @@ When deciding where something goes, check how `pypi/infra` does it first and fol
 
 ## Conventions specific to this repo
 
-- **Secrets**: never commit plaintext secrets, even in pillar files. Decide on an encryption mechanism (SOPS, `git-crypt`, or salt's GPG renderer) before the first pillar is added, and document it here.
+- **Secrets**: never commit plaintext secrets, and never commit encrypted secrets either — sensitive data lives outside the repo entirely. See [`docs/secrets.md`](./docs/secrets.md).
 - **Environments**: keep `production` / `staging` / etc. clearly separated in both Salt pillars and Terraform workspaces/dirs. A change to one environment must never silently apply to another.
-- **Plan before apply**: for any Terraform change, run `terraform plan` and review output before `apply`. Do not auto-apply.
+- **Plan before apply**: for any Terraform change, run `terraform plan` and review output before `apply`. Do not auto-apply production workspaces.
+
+## Locked design decisions
+
+These are the contracts the repo is built on. Don't re-derive; if changing, update the linked docs first.
+
+| Concern | Decision | Doc |
+|---|---|---|
+| Terraform-time secrets store | HCP Terraform workspace variables (sensitive) | [`docs/secrets.md`](./docs/secrets.md) |
+| CI-time secrets store | GitHub Actions encrypted secrets (only `TF_API_TOKEN`) | [`docs/secrets.md`](./docs/secrets.md) |
+| Terraform state backend | HCP Terraform (managed) | [`docs/state.md`](./docs/state.md) |
+| GitHub auth from Terraform | GitHub App (not PAT) | [`docs/secrets.md`](./docs/secrets.md) |
+| CI plan/apply policy | Plan-on-PR (collaborator auto, fork PRs require `safe-to-plan` label); apply gated to `main` + manual confirmation in HCP | [`docs/ci.md`](./docs/ci.md) |
+| At-rest encryption in repo | None — nothing encrypted committed; sensitive pillar data fetched at deploy time | [`docs/secrets.md`](./docs/secrets.md) |
 
 ## Inherited from the user's global CLAUDE.md (highlights)
 
