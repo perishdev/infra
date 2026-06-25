@@ -78,10 +78,4 @@ For running `make validate` / `make plan` from your laptop:
 
 ## 7. Importing existing Cloudflare resources
 
-Once steps 1–3 are done and you have a Cloudflare API token with read scopes:
-
-```sh
-CF_API_TOKEN=... uv run scripts/cf_discover.py
-```
-
-This writes `terraform/cloudflare/generated.tf` with `import` blocks + resource stubs for every DNS record, Worker, route, R2 bucket, and Pages project currently in the account. Review the diff, adjust resource names, commit, then run `terraform plan` — Terraform will absorb the existing state without recreating anything.
+See [`import.md`](./import.md) for the `cf-terraforming` runbook. It uses Cloudflare's own CLI to generate HCL + `import` blocks for the existing zone, R2 buckets, and Pages projects.

@@ -24,7 +24,7 @@ resource "cloudflare_zone" "this" {
   type    = "full"
 }
 
-# Records, Workers, R2 buckets, Pages, etc. are discovered and emitted by
-# scripts/cf_discover.py into separate files (e.g. dns.tf, workers.tf).
-# That script is the source of truth for "what currently exists"; commit
-# its output and review the diff.
+# Records, R2 buckets, Pages projects, and other resources are brought
+# under Terraform management via Cloudflare's `cf-terraforming` CLI —
+# see docs/import.md for the runbook. Generated HCL lands in
+# terraform/cloudflare/generated.tf for review and commit.
