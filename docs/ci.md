@@ -30,7 +30,7 @@ This repo is **public**. Anyone can fork it and open a PR. The CI workflow must 
 
 ### `lint` — runs on every PR including forks
 
-- `terraform fmt -check`, `terraform validate`, Salt state syntax check, `tflint` if adopted.
+- `terraform fmt -check`, `terraform validate`, `tflint` if adopted.
 - No secrets, no network calls beyond provider schema downloads.
 - Safe to run unconditionally on fork PRs.
 
