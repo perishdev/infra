@@ -42,7 +42,19 @@ In Settings → General:
 4. Copy the token (shown once).
 5. In HCP → workspace **`cloudflare`** → Variables → add `cloudflare_api_token` as a **Terraform variable**, mark **Sensitive**, paste the token.
 
-If you want to onboard *more* Cloudflare resource types via [`cf-terraforming`](./import.md) later, the discovery token will need Read scopes matching those resource types (e.g. `Account.Rulesets:Read` for redirect rules). That's separate from the HCP token; generate a short-lived token, use it locally, delete it.
+## Adding scopes to the Cloudflare token later
+
+When you start managing a new Cloudflare resource type (e.g. Email Routing rules, Rulesets), the existing HCP token needs more permissions. **Edit, don't regenerate** — the value stays the same and HCP keeps working without re-pasting.
+
+1. <https://dash.cloudflare.com/profile/api-tokens> → find the existing token → **⋯ → Edit**.
+2. Under **Permissions**, click **+ Add more** and add the new rows. Examples:
+   - Zone — Email Routing Rules — Edit
+   - Account — Email Routing Addresses — Edit
+   - Account — Rulesets — Edit (for redirect rules)
+3. Confirm **Account Resources** and **Zone Resources** still match what they were.
+4. **Continue to summary** → **Update token**. The token value does not change on a permission edit.
+
+If the dashboard *does* regenerate the value (which happens if you click "Roll" or recreate instead of edit), copy the new value into HCP → workspace `cloudflare` → Variables → `cloudflare_api_token`.
 
 ## 4. GitHub App
 
