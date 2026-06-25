@@ -1,6 +1,6 @@
 # Secrets
 
-This repo is **public**. Plaintext secrets must never be committed — not in code, not in pillar files, not in CI logs, not in `terraform plan` output. A secret that lands in git history is compromised forever; rotation is the only fix.
+This repo is **public**. Plaintext secrets must never be committed — not in code, not in CI logs, not in `terraform plan` output. A secret that lands in git history is compromised forever; rotation is the only fix.
 
 ## Where secrets live
 
@@ -9,9 +9,8 @@ This repo is **public**. Plaintext secrets must never be committed — not in co
 | Cloudflare API token | HCP Terraform workspace variable (sensitive) | `terraform` runs |
 | GitHub App ID, installation ID, private key | HCP Terraform workspace variable (sensitive) | `terraform` runs |
 | HCP Terraform API token | GitHub Actions encrypted secret (`TF_API_TOKEN`) | CI workflow, to trigger HCP runs |
-| Per-host / per-service runtime secrets (Salt pillar) | Out-of-band store (TBD when first pillar lands) | Salt master at deploy time |
 
-**Nothing encrypted is committed to the repo.** No SOPS, no `git-crypt`. Sensitive pillar data is fetched at deploy time from whatever store we choose when the first pillar appears.
+**Nothing encrypted is committed to the repo.** No SOPS, no `git-crypt`. If we ever run our own hosts and need runtime secrets, we pick an out-of-band store then; until that day, all secrets in scope live in HCP workspace variables.
 
 ## Why HCP Terraform as the vault
 
