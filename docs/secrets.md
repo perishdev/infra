@@ -40,9 +40,46 @@ The GitHub provider authenticates as a GitHub App, not a PAT. Apps are not tied 
 
 ## Rotation
 
-- **Cloudflare token**: rotate yearly or on suspected exposure. Generate the replacement before deleting the old one; update the HCP workspace variable; next run uses the new token.
-- **GitHub App private key**: rotate yearly or on suspected exposure. GitHub Apps support multiple active keys — generate the new one, swap the HCP variable, delete the old key.
-- **HCP user API token**: rotated when a maintainer leaves. Each maintainer regenerates their own via `terraform login` after revocation.
+Rotate yearly or on any suspected exposure. The procedures below are zero-downtime — the new credential is in place and exercised before the old one is revoked.
+
+### Cloudflare API token
+
+1. <https://dash.cloudflare.com/profile/api-tokens> → **Create Token** → duplicate the scopes of the existing token.
+2. Copy the new value.
+3. HCP → workspace `cloudflare` → Variables → `cloudflare_api_token` → click the edit icon → paste new value → Save.
+4. Trigger a no-op plan to confirm the new token works:
+   ```sh
+   cd terraform/cloudflare
+   terraform plan        # expect: no changes; speculative plan in HCP authenticates with the new token
+   ```
+5. If the plan succeeds, return to the dashboard and **revoke the old token**.
+6. If the plan fails, paste the old value back into the HCP variable; the old token is still live. Investigate.
+
+### GitHub App private key
+
+GitHub Apps support multiple active private keys, so rotation is overlap-then-cutover.
+
+1. GitHub → org Settings → Developer settings → GitHub Apps → your app → **Private keys → Generate a private key**. A `.pem` downloads. Both old and new keys are now active.
+2. HCP → workspace `github-org` → Variables → `github_app_pem` → paste the full new PEM contents (including `-----BEGIN/END-----` lines) → Save.
+3. Trigger a no-op plan to confirm:
+   ```sh
+   cd terraform/github
+   terraform plan
+   ```
+4. If the plan succeeds, return to the GitHub App's Private keys page and **delete the old key**.
+5. If the plan fails — likely PEM newline mangling on paste — paste again carefully and retry.
+
+### HCP API token (user or team)
+
+- **User token**: each maintainer regenerates via `terraform login` after the previous token is revoked. Coordinate so the local CLI keeps working.
+- **Team token** (`infra-meta-bot` or similar, when HCP-as-code arc lands): HCP UI → org Settings → Teams → token regenerate. Paste the new value into the meta-workspace's `TFE_TOKEN` env var.
+
+In both cases: generate the new one *first*, paste it in, verify by triggering a plan against any workspace, then revoke the old.
+
+### When NOT to rotate
+
+- Routine "I forgot when I last rotated" — schedule a yearly calendar reminder, but don't rotate ad-hoc just to feel busy. Each rotation is a chance for a typo or PEM mangling to wedge a workspace.
+- On a maintainer leaving — only rotate credentials they actually had access to. The HCP API token they used dies when their HCP user is removed; the underlying Cloudflare / GitHub App credentials aren't tied to a specific maintainer and don't need rotating unless they were ever exposed to that maintainer's local environment.
 
 ## Things that look like secrets but aren't
 
