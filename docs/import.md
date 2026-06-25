@@ -42,12 +42,22 @@ cd terraform/cloudflare
 
 terraform init -backend=false          # cf-terraforming requires an initialised dir
 
+# Zone-scoped resources (DNS records) — --account and --zone are mutually exclusive.
 cf-terraforming generate \
-  --resource-type "cloudflare_dns_record,cloudflare_r2_bucket,cloudflare_pages_project,cloudflare_workers_kv_namespace" \
+  --terraform-binary-path "$(which terraform)" \
+  --resource-type "cloudflare_dns_record" \
   --zone "$CLOUDFLARE_ZONE_ID" \
-  --account "$CLOUDFLARE_ACCOUNT_ID" \
   > generated.tf
+
+# Account-scoped resources.
+cf-terraforming generate \
+  --terraform-binary-path "$(which terraform)" \
+  --resource-type "cloudflare_r2_bucket,cloudflare_pages_project,cloudflare_workers_kv_namespace" \
+  --account "$CLOUDFLARE_ACCOUNT_ID" \
+  >> generated.tf
 ```
+
+Without `--terraform-binary-path`, cf-terraforming downloads its own terraform binary into the current directory. The flag tells it to reuse the one already on PATH.
 
 `generated.tf` is the file the existing comment in `main.tf` references. Review it: rename resource labels to something readable (cf-terraforming uses `terraform_managed_resource` placeholders), drop anything you don't actually want managed, and commit.
 
@@ -56,8 +66,15 @@ cf-terraforming generate \
 ```sh
 cf-terraforming import \
   --modern-import-block \
-  --resource-type "cloudflare_dns_record,cloudflare_r2_bucket,cloudflare_pages_project,cloudflare_workers_kv_namespace" \
+  --terraform-binary-path "$(which terraform)" \
+  --resource-type "cloudflare_dns_record" \
   --zone "$CLOUDFLARE_ZONE_ID" \
+  >> generated.tf
+
+cf-terraforming import \
+  --modern-import-block \
+  --terraform-binary-path "$(which terraform)" \
+  --resource-type "cloudflare_r2_bucket,cloudflare_pages_project,cloudflare_workers_kv_namespace" \
   --account "$CLOUDFLARE_ACCOUNT_ID" \
   >> generated.tf
 ```
