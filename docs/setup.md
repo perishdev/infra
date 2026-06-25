@@ -1,6 +1,6 @@
 # Setup
 
-One-time, out-of-band steps to wire up the systems this repo manages. The repo's Terraform code is speculative until these are done.
+One-time, out-of-band steps to wire up the systems this repo manages. The Terraform code is speculative until these are done.
 
 Run in order. Each step explains what it produces and where the value goes.
 
@@ -19,29 +19,30 @@ For each Terraform leaf directory, create a VCS-linked workspace under the `infr
 | `terraform/cloudflare/` | `cloudflare` | `terraform/cloudflare` |
 | `terraform/github/` | `github-org` | `terraform/github` |
 
-For each workspace:
+For each workspace, in Settings → Version Control:
 
 - VCS provider: GitHub (connect via OAuth, scope to this repo only).
-- **Working directory**: set as above. Settings → Version Control → "Terraform Working Directory".
+- **Terraform Working Directory**: set as above.
 - **Automatic Run Triggering**: set to **"Only trigger runs when files in specified paths change"**, path pattern `<working-dir>/**` (e.g. `terraform/cloudflare/**`). Without this, every push to `main` triggers every workspace — a docs-only commit will spuriously plan against Cloudflare and may fail on an unrelated change.
-- **Automatic speculative plans**: **enabled**. This is the master toggle for plans on PRs; without it, PRs get no speculative plan and the GitHub status check never appears. Settings → Version Control → "Automatic speculative plans".
+- **Automatic speculative plans**: **enabled**. This is the master toggle for plans on PRs; without it, PRs get no speculative plan and the GitHub status check never appears.
 - **Speculative plans on PRs from forks**: **disabled**. This is a separate, fork-specific toggle. Without disabling it, anyone opening a fork PR can read the workspace's sensitive variables via a malicious `.tf` file. The label-gated plan flow in [`ci.md`](./ci.md) replaces it for fork PRs.
-- Execution mode: **Remote**.
-- Auto-apply: **disabled** (manual confirmation required).
+
+In Settings → General:
+
+- **Execution mode**: Remote.
+- **Auto-apply**: disabled (manual confirmation required).
 
 ## 3. Cloudflare API token
 
 1. Cloudflare dashboard → My Profile → API Tokens → Create Token.
-2. Use the **"Custom token"** template with these permissions for the `perish.dev` zone and the account it belongs to:
+2. **Custom token** with these permissions for the `perish.dev` zone and the account it belongs to:
    - Zone — DNS — Edit
    - Zone — Zone Settings — Edit
-   - Zone — Workers Routes — Edit
-   - Account — Workers Scripts — Edit
-   - Account — Workers R2 Storage — Edit
-   - Account — Cloudflare Pages — Edit
 3. Account Resources: **Include — your account only**. Zone Resources: **Include — Specific zone — `perish.dev`**.
 4. Copy the token (shown once).
-5. In HCP Terraform → workspace **`cloudflare`** → Variables → add `cloudflare_api_token` as a **Terraform variable**, mark **Sensitive**, paste the token.
+5. In HCP → workspace **`cloudflare`** → Variables → add `cloudflare_api_token` as a **Terraform variable**, mark **Sensitive**, paste the token.
+
+If you want to onboard *more* Cloudflare resource types via [`cf-terraforming`](./import.md) later, the discovery token will need Read scopes matching those resource types (e.g. `Account.Rulesets:Read` for redirect rules). That's separate from the HCP token; generate a short-lived token, use it locally, delete it.
 
 ## 4. GitHub App
 
@@ -49,35 +50,58 @@ The `github-org` workspace authenticates as a GitHub App, not a PAT.
 
 1. Org settings → Developer settings → GitHub Apps → New GitHub App.
 2. Permissions (start narrow, widen on demand):
-   - Repository permissions: Administration (read/write), Contents (read), Metadata (read), Pull requests (read/write).
-   - Organization permissions: Members (read), Administration (read/write).
+   - Repository: Administration (R/W), Contents (R), Metadata (R), Pull requests (R/W).
+   - Organization: Members (R), Administration (R/W).
 3. Where can this app be installed: **Only on this account**.
 4. Create. Note the **App ID**.
 5. Generate a **private key** (downloads as a `.pem`). Treat it like a password.
-6. Install the app on the `perishdev` org, scoped to "All repositories" (or to specific ones; can be widened later). Note the **Installation ID** from the install URL.
-7. In HCP Terraform → workspace **`github-org`** → Variables → add three sensitive Terraform variables:
+6. Install the app on the `perishdev` org, scoped to the repos Terraform manages (`perishdev/infra` and `perishdev/perishdev.github.io`). Note the **Installation ID** from the install URL (`.../installations/<INSTALLATION_ID>`).
+7. In HCP → workspace **`github-org`** → Variables → add four Terraform variables:
    - `github_owner` = `perishdev` (not sensitive)
    - `github_app_id` = the App ID (sensitive)
    - `github_app_installation_id` = the Installation ID (sensitive)
-   - `github_app_pem` = paste the PEM contents (sensitive)
+   - `github_app_pem` = paste the **full PEM contents**, including the `-----BEGIN/END RSA PRIVATE KEY-----` lines (sensitive)
 
 ## 5. HCP Terraform API token for CI
 
-Only needed if/when CI workflows trigger HCP runs (the current [`ci.yml`](../.github/workflows/ci.yml) doesn't — it only runs fmt/validate locally on the runner). Skip until needed.
+Not currently used. The CI workflow does only fork-safe `fmt` and `validate`; HCP triggers plans and applies via its own VCS integration, not from GitHub Actions.
 
-When needed:
+Set this up only if a future CI workflow needs to call the HCP API directly:
 
-1. HCP Terraform → User settings → Tokens → Create API token. Scope: minimal.
+1. HCP → User settings → Tokens → Create API token, scope minimal.
 2. GitHub → repo settings → Secrets → New repository secret → `TF_API_TOKEN`.
 
 ## 6. Local development
 
-For running `make validate` / `make plan` from your laptop:
-
 1. Install Terraform ≥ 1.9.
-2. `terraform login` — opens a browser, asks HCP for an API token tied to your user. Token lands in `~/.terraform.d/credentials.tfrc.json`.
-3. From any leaf dir: `terraform init` (will authenticate to HCP automatically).
+2. `terraform login` — opens a browser, asks HCP for a user API token. Token lands in `~/.terraform.d/credentials.tfrc.json`. The same token is what authenticates HCP API calls if you want to script anything (see [`state.md`](./state.md#api-access)).
+3. From any leaf directory: `terraform init` (authenticates to HCP automatically), then `terraform plan`. A VCS-connected workspace allows `plan` from CLI but blocks `apply` — that gate is intentional.
 
 ## 7. Importing existing Cloudflare resources
 
-See [`import.md`](./import.md) for the `cf-terraforming` runbook. It uses Cloudflare's own CLI to generate HCL + `import` blocks for the existing zone, R2 buckets, and Pages projects.
+See [`import.md`](./import.md) for the `cf-terraforming` runbook. It uses Cloudflare's own CLI to generate HCL and Terraform 1.5+ `import` blocks for the existing zone, DNS records, R2 buckets, and Pages projects.
+
+## Troubleshooting
+
+### HCP doesn't post a status check on a PR
+
+Usually one of three things:
+
+1. The workspace's "Automatic speculative plans" master toggle is off (see step 2).
+2. The path filter excludes the PR's diff. Check Settings → Version Control → Trigger Patterns. A docs-only PR correctly produces no per-workspace check; HCP rolls up to a single SUCCESS aggregated status.
+3. The workspace's VCS webhook subscription drifted. Open Settings → Version Control and click **Update VCS settings** with no changes — that re-registers the webhook with GitHub.
+
+### GitHub Pages cert stuck at `null`
+
+If `gh api repos/<owner>/<repo>/pages` shows `https_certificate: null` and `protected_domain_state: null` for more than ~15 min after the DNS resolves, the cert provisioning flow has wedged. Fix:
+
+```sh
+gh api -X PUT repos/<owner>/<repo>/pages -f 'cname='          # remove
+gh api -X PUT repos/<owner>/<repo>/pages -f 'cname=<domain>'  # re-add
+```
+
+Removing and re-adding the custom domain re-emits the event that kicks Let's Encrypt. Cert usually issues within a few minutes after that.
+
+### Branch protection blocks a PR with no HCP check
+
+If a PR's diff doesn't match any workspace's path filter, HCP posts a single SUCCESS for the aggregated commit status (we tested this — it works). If it doesn't, the workspace VCS webhook is probably the issue (see above).

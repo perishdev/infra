@@ -81,7 +81,7 @@ cf-terraforming import \
 
 `--modern-import-block` emits Terraform 1.5+ `import { to = ... id = "..." }` blocks rather than the legacy CLI commands. Append to the same file so resources and their imports stay co-located.
 
-## Verify and apply
+## Verify
 
 ```sh
 terraform fmt generated.tf
@@ -89,12 +89,17 @@ terraform validate
 terraform plan      # expect: every existing resource shown as "will import", nothing as "will create"
 ```
 
-If `plan` shows any `create` for a resource that already exists, the resource name or import ID in `generated.tf` is wrong — fix before applying.
+`terraform plan` from the CLI is allowed against a VCS-connected HCP workspace (it runs as a speculative plan in HCP); `terraform apply` from the CLI is intentionally blocked. The plan output streams back to your terminal with a link to the HCP run.
 
-Once the plan is clean, commit `generated.tf` and let HCP Terraform run the apply (manual confirmation per `docs/ci.md`).
+If `plan` shows any `create` for a resource that already exists, the resource name or import ID in `generated.tf` is wrong — fix before opening a PR. The real apply happens when the PR merges and a maintainer confirms in HCP (or scripts the confirm via `POST /api/v2/runs/<id>/actions/apply`).
 
 ## When to re-run
 
 Re-run `cf-terraforming generate` whenever new resources appear in Cloudflare that you want Terraform to manage. The cleanest workflow is to write new resources directly in Terraform from the start; cf-terraforming is for one-time onboarding of legacy state, not steady-state operations.
 
 > Note: cf-terraforming is **not** intended for use in CI. It runs locally during onboarding, output is reviewed by a human, then committed.
+
+## What we've actually used this for
+
+- **`cloudflare_dns_record`** — the six email-routing DNS records on `perish.dev` were imported via this flow. The four GitHub Pages apex records and the `www` CNAME were written directly into [`terraform/cloudflare/dns.tf`](../terraform/cloudflare/dns.tf) (no prior existence to import).
+- **`cloudflare_pages_project`**, **`cloudflare_r2_bucket`** — discovered during the first run but explicitly **excluded** from import. The Pages projects were unrelated personal repos; the R2 bucket was empty. Scope decision: this repo manages `perish.dev` infra, not the whole account.

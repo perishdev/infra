@@ -1,46 +1,55 @@
 # CI
 
-This repo is **public**. Anyone can fork it and open a PR. The CI workflow must assume a hostile PR body and protect every secret accordingly.
+This repo is **public**. Anyone can fork it and open a PR. The CI workflow assumes a hostile PR body and protects every secret accordingly.
 
 ## Trust boundary
 
 | Surface | Visibility | Holds secrets? |
 |---|---|---|
 | Repo source, Issues, PRs, Actions logs | Public | no |
-| HCP Terraform workspace | Private (HCP) | yes — all Terraform-time secrets |
-| GitHub Actions encrypted secrets | Private (org/repo settings) | yes — only `TF_API_TOKEN` |
-| `terraform plan` output | Public (posted to PR by HCP VCS integration) | redacted by HCP |
+| HCP Terraform workspaces | Private (HCP) | yes — all Terraform-time secrets |
+| GitHub Actions encrypted secrets | Private (repo settings) | none today (placeholder for `TF_API_TOKEN` if needed later) |
+| Speculative `terraform plan` output | Linked from PR; lives in HCP UI | redacted by HCP |
 
-## Workflows
+## What runs on a PR
 
-### `plan` — runs on PRs
+| Job | Where it runs | Triggered for fork PRs? | Secrets in scope |
+|---|---|---|---|
+| `terraform fmt` | GitHub Actions | yes | none |
+| `terraform validate (terraform/cloudflare)` | GitHub Actions | yes | none (`init -backend=false`) |
+| `terraform validate (terraform/github)` | GitHub Actions | yes | none (`init -backend=false`) |
+| HCP speculative plan per workspace | HCP Terraform via VCS integration | **only when maintainer labels `safe-to-plan`** | yes — full workspace variables |
 
-- **Trigger**: `pull_request` against `main`.
-- **PRs from branches in this repo** (collaborators): plan runs automatically.
-- **PRs from forks**: plan runs only when a maintainer applies the `safe-to-plan` label. Until labeled, CI runs lint/validate only (no secrets, no HCP API token).
-- **What it does**: calls the HCP Terraform API to start a speculative plan in the relevant workspace. HCP posts the plan summary back to the PR.
-- **What it does NOT do**: never runs `terraform apply`, never echoes secret values, never reads `${{ secrets.* }}` into shell variables.
+The first three are defined in [`.github/workflows/ci.yml`](../.github/workflows/ci.yml). The HCP plan is triggered by HCP's own VCS integration when it detects a push to a watched branch — not by a GitHub Actions job. There is no `TF_API_TOKEN` in use today.
 
-### `apply` — runs on main
+## What runs on merge to `main`
 
-- **Trigger**: `push` to `main` (i.e. merged PR).
-- HCP creates a run for each VCS-watched workspace.
-- **Manual confirmation required** in HCP UI by a workspace admin. No auto-apply for the prod workspaces.
-- Apply logs are visible in HCP, not in GitHub Actions.
+- HCP creates a real run for each workspace whose path filter matches the merged commit (`terraform/cloudflare/**` for the `cloudflare` workspace, `terraform/github/**` for `github-org`).
+- The run plans then **stops at "needs confirmation"** — applies require a human click in HCP UI (or an authenticated `POST /runs/<id>/actions/apply`).
+- Apply logs live in HCP, not GitHub Actions.
 
-### `lint` — runs on every PR including forks
+A docs-only push to `main` triggers no workspace runs. HCP still posts an aggregated commit status (success), so branch protection treats it as a passing rollup.
 
-- `terraform fmt -check`, `terraform validate`, `tflint` if adopted.
-- No secrets, no network calls beyond provider schema downloads.
-- Safe to run unconditionally on fork PRs.
+## Branch protection on `main`
+
+Enforced via [`terraform/github/branch_protection.tf`](../terraform/github/branch_protection.tf). All four required status checks must be green before merge:
+
+- `terraform fmt`
+- `terraform validate (terraform/cloudflare)`
+- `terraform validate (terraform/github)`
+- `Terraform Cloud/perishdev/repo-id-CffUfWW6H1x6Bauq` — HCP's aggregated commit status
+
+Plus: linear history, no force-push, no branch deletion, conversation resolution required. Admins can bypass for emergencies (`enforce_admins = false`).
+
+> ⚠️ The HCP check name embeds a per-installation VCS-repo ID (`repo-id-CffUfWW6H1x6Bauq`). If the GitHub–HCP OAuth/App connection is ever rebuilt, that string changes and branch protection silently blocks every PR until [`terraform/github/branch_protection.tf`](../terraform/github/branch_protection.tf) is updated to match.
 
 ## Rules
 
 1. **Never use `pull_request_target`** unless the workflow is reviewed line-by-line for fork-PR safety. The default trigger is `pull_request`, which gives fork PRs no access to secrets.
 2. **Never `echo` secrets**, never pass them as command-line args (visible in `ps`). Use env vars and let the tool read them.
-3. **Sensitive Terraform outputs**: mark `sensitive = true` on any output that could leak a value. HCP redacts these from plan output.
-4. **Fork-PR plans are opt-in.** A maintainer reviews the diff, decides whether it's safe to run against the real Cloudflare/GitHub account, then applies the label.
-5. **Apply requires a human.** No automated apply to a production workspace, ever.
+3. **Sensitive Terraform outputs**: mark `sensitive = true`. HCP redacts these from plan output.
+4. **Fork-PR plans are opt-in.** A maintainer reviews the diff, decides whether it's safe to run against the real Cloudflare/GitHub account, then applies the `safe-to-plan` label.
+5. **Apply requires a human.** No automated apply, ever. (The exception during this repo's bootstrap was deliberate API-driven applies after the speculative plan had been read; see commit history.)
 
 ## What to watch for in PR diffs from forks
 
