@@ -34,7 +34,7 @@ In Settings → General:
 
 ## 3. Cloudflare API token
 
-1. Cloudflare dashboard → My Profile → API Tokens → Create Token.
+1. Go to <https://dash.cloudflare.com/profile/api-tokens> → **Create Token**.
 2. **Custom token** with these permissions for the `perish.dev` zone and the account it belongs to:
    - Zone — DNS — Edit
    - Zone — Zone Settings — Edit
@@ -48,7 +48,7 @@ If you want to onboard *more* Cloudflare resource types via [`cf-terraforming`](
 
 The `github-org` workspace authenticates as a GitHub App, not a PAT.
 
-1. Org settings → Developer settings → GitHub Apps → New GitHub App.
+1. Go to `https://github.com/organizations/perishdev/settings/apps/new` (replace `perishdev` if your org slug differs).
 2. Permissions (start narrow, widen on demand):
    - Repository: Administration (R/W), Contents (R), Metadata (R), Pull requests (R/W).
    - Organization: Members (R), Administration (R/W).
