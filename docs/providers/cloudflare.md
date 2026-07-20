@@ -1,0 +1,87 @@
+# Provider: Cloudflare (agent-first)
+
+Deep dive for [Phase 2](../wizard.md#phase-2--cloudflare) of the setup wizard. What the
+agent does, what the human must do, and how to prove it. Canonical bootstrap detail:
+[`setup.md#3`](../setup.md#3-cloudflare-api-token). Token scopes + rotation:
+[`secrets.md`](../secrets.md#cloudflare-api-token-scopes).
+
+## What this repo manages via Cloudflare
+
+The `perish.dev` zone and all its DNS records (Email Routing + GitHub Pages), through the
+`cloudflare/cloudflare` v5 provider. State + token live in the HCP `cloudflare` workspace.
+
+## The actor split
+
+| Action | Actor | Why |
+|---|---|---|
+| Mint the scoped API token | **HUMAN** | No API to bootstrap the *first* token; it's a dashboard-only action. |
+| Paste token into HCP (sensitive var) | **HUMAN** | The agent must never see the plaintext. |
+| Verify var presence + shape | **AGENT** | HCP API, no secret exposure. |
+| Prove the token works (`plan`) | **AGENT** | Speculative plan runs in HCP. |
+| Read account/zone IDs (for porting) | **AGENT** | Cloudflare API, once a token exists. |
+
+## HUMAN — mint + paste (`cf-token`)
+
+The agent emits a handoff block; the human does exactly this:
+
+1. <https://dash.cloudflare.com/profile/api-tokens> → **Create Token** → **Custom token**.
+2. Permissions for the `perish.dev` zone and its account:
+   - Zone — DNS — **Edit**
+   - Zone — Zone Settings — **Edit**
+   - *(add a row per new resource type before Terraform manages it — Email Routing Rules,
+     Rulesets, etc. Edit the token later, don't regenerate — see
+     [`setup.md`](../setup.md#adding-scopes-to-the-cloudflare-token-later).)*
+3. **Account Resources**: Include — your account. **Zone Resources**: Include —
+   Specific zone — `perish.dev`.
+4. Copy the token (shown once).
+5. HCP → workspace **`cloudflare`** → Variables → add `cloudflare_api_token` as a
+   **Terraform** variable, mark **Sensitive**, paste.
+
+> The token needs **Edit** because the persistent workspace *manages* resources. For
+> one-time *discovery* during migration, a separate **Read** token is used and thrown
+> away — see [`migration.md`](./migration.md) and [`import.md`](../import.md#discovery-token).
+
+## AGENT — verify
+
+The value is redacted, so the agent verifies presence + `sensitive == true`, then proves
+the token with a plan:
+
+```sh
+HCP_TOKEN=$(jq -r '.credentials["app.terraform.io"].token' ~/.terraform.d/credentials.tfrc.json)
+WS_ID=$(curl -sf "https://app.terraform.io/api/v2/organizations/perishdev/workspaces/cloudflare" \
+  -H "Authorization: Bearer $HCP_TOKEN" | jq -r '.data.id')
+
+curl -sf "https://app.terraform.io/api/v2/workspaces/$WS_ID/vars" \
+  -H "Authorization: Bearer $HCP_TOKEN" \
+  | jq -e '.data[] | select(.attributes.key=="cloudflare_api_token") | .attributes.sensitive==true' \
+  && echo "✓ token present + sensitive"
+
+cd terraform/cloudflare && terraform init && terraform plan   # green = token works
+```
+
+## AGENT — reading account + zone IDs (porting)
+
+These are **not secrets** (they're `local`s in `terraform/cloudflare/main.tf`:
+`account_id = d8a72309…`, `zone_id = 78ff9bdc…`). When porting to a new org, the agent
+can read the new values from the Cloudflare API once a token exists:
+
+```sh
+export CLOUDFLARE_API_TOKEN=...   # the freshly minted token (agent may hold it transiently for read-only calls)
+
+# Account ID
+curl -sf "https://api.cloudflare.com/client/v4/accounts" \
+  -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" | jq -r '.result[0].id'
+
+# Zone ID for the new domain
+curl -sf "https://api.cloudflare.com/client/v4/zones?name=<new-domain>" \
+  -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" | jq -r '.result[0].id'
+```
+
+Write these into `terraform/cloudflare/main.tf` `locals`. See the Porting table in
+[`wizard.md`](../wizard.md#porting-to-another-organization).
+
+## Rotation
+
+Zero-downtime, agent-assisted: human mints the new token and pastes it; agent runs a no-op
+`plan` to prove it; only then does the human revoke the old one. Steps in
+[`secrets.md`](../secrets.md#cloudflare-api-token).

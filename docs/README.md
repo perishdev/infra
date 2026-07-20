@@ -16,7 +16,10 @@ The rest is reference, dipped into as needed.
 
 ### Setup and onboarding
 
-- [`setup.md`](./setup.md) — one-time bootstrap of HCP, Cloudflare token, GitHub App, local dev. Done once per maintainer's laptop.
+- [`wizard.md`](./wizard.md) — **agent-first** setup wizard. Hand it to an AI agent to run the whole bootstrap end-to-end, pausing only for the steps a human must do (signups, minting credentials, pasting secrets). Orchestrates the docs below; includes a "porting to another org" section.
+- [`setup.steps.yaml`](./setup.steps.yaml) — machine-readable manifest the wizard walks: each step tagged `AGENT`/`HUMAN` with a `check` command for resume.
+- [`setup.md`](./setup.md) — one-time bootstrap of HCP, Cloudflare token, GitHub App, local dev. The human-readable canonical detail the wizard links into. Done once per maintainer's laptop.
+- [`providers/`](./providers/) — per-provider agent-first deep dives: [`cloudflare.md`](./providers/cloudflare.md), [`github.md`](./providers/github.md), [`gcp.md`](./providers/gcp.md) *(template — not active)*, [`migration.md`](./providers/migration.md).
 - [`import.md`](./import.md) — `cf-terraforming` runbook for adopting existing Cloudflare state into Terraform.
 - [`worktree-workflow.md`](./worktree-workflow.md) — optional `git worktree` convention for maintainers juggling multiple branches.
 

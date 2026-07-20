@@ -19,12 +19,16 @@ terraform/
 .github/
   workflows/    fork-safe terraform fmt + validate gates
 docs/
+  wizard.md     agent-first setup wizard (hand to an AI agent; humans only mint/paste creds)
+  providers/    per-provider agent-first deep dives (cloudflare, github, gcp*, migration)
   secrets.md    secrets store, GitHub App, rotation
   state.md      HCP backend, workspace layout
   ci.md         workflow contract, fork-PR policy
-  setup.md      out-of-band bootstrap runbook
+  setup.md      out-of-band bootstrap runbook (canonical detail behind the wizard)
   import.md     cf-terraforming runbook for adopting existing Cloudflare state
 ```
+
+To bootstrap this repo (or a fork of it for another org), hand [`docs/wizard.md`](./docs/wizard.md) to an AI agent: it runs the setup end-to-end and pauses only when a human must sign up, mint a credential, or paste a secret.
 
 For the contracts the repo is built on — secrets, state, CI — see [`CLAUDE.md`](./CLAUDE.md). For the live design decisions table, look there first.
 
