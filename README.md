@@ -10,20 +10,40 @@ There is dust in the clouds, infrastructure as code for perishdev.
 
 No hosts of our own (no Salt, no Ansible). Everything in scope is SaaS-shaped.
 
+## Setup — let an agent do it
+
+Bootstrapping (or forking this repo as groundwork for another org) is **agent-first**.
+Point any AI coding agent at the setup skill and it drives the whole thing — HCP,
+Cloudflare token, GitHub App, importing existing resources, first plan — pausing only when
+a human must sign up, mint a credential, or paste a secret.
+
+- **Claude Code:** run `/infra-setup` (or just say "set up the infra").
+- **Other harnesses (opencode, Codex, …):** open and follow
+  [`.claude/skills/infra-setup/SKILL.md`](./.claude/skills/infra-setup/SKILL.md) — plain
+  Markdown plus a machine-readable manifest; see [`AGENTS.md`](./AGENTS.md).
+
+It's idempotent and resumable: re-invoke any time and it re-checks state, resuming at the
+first incomplete step. For a human-driven bootstrap instead, [`docs/setup.md`](./docs/setup.md)
+is the canonical runbook the skill orchestrates.
+
 ## Where things live
 
 ```
 terraform/
   cloudflare/   one HCP workspace (cloudflare),     zone + DNS
   github/       one HCP workspace (github-org),     repos + protection + labels
+.claude/
+  skills/infra-setup/   agent-first bootstrap skill (SKILL.md + references/ + steps.yaml)
+  commands/infra-setup.md   /infra-setup entry point
 .github/
   workflows/    fork-safe terraform fmt + validate gates
 docs/
   secrets.md    secrets store, GitHub App, rotation
   state.md      HCP backend, workspace layout
   ci.md         workflow contract, fork-PR policy
-  setup.md      out-of-band bootstrap runbook
+  setup.md      human bootstrap runbook (the skill orchestrates this)
   import.md     cf-terraforming runbook for adopting existing Cloudflare state
+AGENTS.md       cross-harness pointer for non-Claude agents
 ```
 
 For the contracts the repo is built on — secrets, state, CI — see [`CLAUDE.md`](./CLAUDE.md). For the live design decisions table, look there first.
