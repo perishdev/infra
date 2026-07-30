@@ -222,7 +222,9 @@ Full walkthrough: [`providers/cloudflare.md`](./providers/cloudflare.md).
 - **`AGENT` — cf-verify.** The agent can't read the redacted value, so it verifies
   *presence and shape*, then proves the token works by running a plan (Phase 4):
   ```sh
-  WS_ID=$(curl -sf ".../workspaces/cloudflare" -H "Authorization: Bearer $HCP_TOKEN" | jq -r '.data.id')
+  HCP_TOKEN=$(jq -r '.credentials["app.terraform.io"].token' ~/.terraform.d/credentials.tfrc.json)
+  WS_ID=$(curl -sf "https://app.terraform.io/api/v2/organizations/perishdev/workspaces/cloudflare" \
+    -H "Authorization: Bearer $HCP_TOKEN" | jq -r '.data.id')
   curl -sf "https://app.terraform.io/api/v2/workspaces/$WS_ID/vars" \
     -H "Authorization: Bearer $HCP_TOKEN" \
     | jq -e '.data[] | select(.attributes.key=="cloudflare_api_token") | .attributes.sensitive==true' \

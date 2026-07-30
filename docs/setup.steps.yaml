@@ -213,7 +213,7 @@ steps:
     run: |
       https://dash.cloudflare.com/profile/api-tokens -> Custom token -> READ scopes on each
       resource type to discover (DNS·Read, etc.), zone perish.dev, TTL a few hours. Copy the value.
-    check: "null"   # ephemeral; no scriptable check
+    check: ~   # YAML null — ephemeral credential, no scriptable check (see header contract)
     produces: throwaway read token (deleted after import)
     docs: docs/import.md#discovery-token
 
