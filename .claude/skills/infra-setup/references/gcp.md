@@ -11,7 +11,7 @@
 
 ## Prerequisite: make the decision (HUMAN + docs)
 
-`gcp-decision` in [`setup.steps.yaml`](steps.yaml) stays **red** until GCP is
+`gcp-decision` in [`steps.yaml`](steps.yaml) stays **red** until GCP is
 intentionally adopted (`test -d terraform/gcp`). Before writing anything:
 
 1. Add a row to `CLAUDE.md`'s locked-decisions table (what GCP is for, auth method, state).
@@ -45,6 +45,12 @@ the rotation burden that implies.
 2. Link a billing account (browser).
 
 ### AGENT — enable APIs + set up auth
+
+> ⚠ **Illustrative, not runnable as-is.** The `...` below is a real gap — the WIF pool,
+> provider, attribute mapping, and trust condition must be completed against HCP's actual
+> OIDC issuer/audience at adoption time. Treat this as the shape, not the procedure; fill
+> it in (and replace this warning) when GCP is actually adopted.
+
 ```sh
 gcloud config set project <PROJECT_ID>
 gcloud services enable cloudresourcemanager.googleapis.com iam.googleapis.com <needed-apis>
@@ -53,9 +59,8 @@ gcloud services enable cloudresourcemanager.googleapis.com iam.googleapis.com <n
 # and a service account with least-privilege roles that HCP may impersonate.
 gcloud iam workload-identity-pools create hcp-pool --location=global ...
 ```
-Exact WIF config depends on how HCP is configured to emit OIDC; capture it in this file
-when implemented. Provider block goes in `terraform/gcp/providers.tf`, using
-`google`/`google-beta`, with impersonation rather than a key file.
+Provider block goes in `terraform/gcp/providers.tf`, using `google`/`google-beta`, with
+impersonation rather than a key file.
 
 ### AGENT — HCP workspace
 Create a `gcp` workspace (working dir `terraform/gcp`, path filter `terraform/gcp/**`,

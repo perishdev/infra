@@ -18,7 +18,9 @@
 #   check     command whose success (exit 0) means the step is DONE. Idempotent.
 #             `null` means "no scriptable check — prove it via the next plan".
 #   produces  the artifact/credential this step yields
-#   docs      canonical section to read for the fine print
+#   docs      canonical section to read for the fine print — a REPO-ROOT-RELATIVE path
+#             (e.g. docs/setup.md#... or .claude/skills/infra-setup/references/...),
+#             not relative to this file
 #
 # RUNNER SETUP — the fields below (org, hcp_api, …) are YAML metadata, NOT shell
 # variables. Before running any `check`/`run`, export the two the commands actually
@@ -84,7 +86,7 @@ steps:
     provider: hcp
     actor: AGENT
     title: Confirm HCP API reachable
-    why: Gate — the rest of the wizard is HCP API calls.
+    why: Gate — the rest of this skill is HCP API calls.
     run: |
       export HCP_TOKEN=$(jq -r '.credentials["app.terraform.io"].token' ~/.terraform.d/credentials.tfrc.json)
       curl -sf "$hcp_api/organizations/perishdev" -H "Authorization: Bearer $HCP_TOKEN" | jq -e '.data.id'
@@ -113,7 +115,9 @@ steps:
     title: Create cloudflare + github-org workspaces
     why: One workspace per leaf; carries working dir, path filter, safety toggles.
     run: |
-      Run the ready-to-run `create_ws` helper in references/hcp.md (Phase 1) — a POST to
+      SOURCE OF TRUTH: the `create_ws` helper in references/hcp.md (Phase 1). Run that.
+      The summary below is a reminder, not a second copy to maintain — if it disagrees
+      with hcp.md, hcp.md wins. A POST to
       $hcp_api/organizations/perishdev/workspaces per workspace with:
         working-directory:   terraform/cloudflare  (and terraform/github)
         file-triggers-enabled: true
@@ -229,7 +233,7 @@ steps:
     # One plan, captured once. Success = at least one import AND zero creates.
     # (If a change legitimately adds a brand-new resource alongside the import, review
     # the plan by hand — this check intentionally treats any 'will be created' as not-done.)
-    check: "cd terraform/cloudflare && terraform plan -input=false -no-color >/tmp/wizard-import.plan 2>&1 && grep -q 'will be imported' /tmp/wizard-import.plan && ! grep -q 'will be created' /tmp/wizard-import.plan"
+    check: "cd terraform/cloudflare && terraform plan -input=false -no-color >/tmp/infra-setup-import.plan 2>&1 && grep -q 'will be imported' /tmp/infra-setup-import.plan && ! grep -q 'will be created' /tmp/infra-setup-import.plan"
     produces: generated.tf with import blocks; plan shows imports only
     docs: .claude/skills/infra-setup/references/migration.md
 

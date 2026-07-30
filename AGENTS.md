@@ -30,12 +30,12 @@ the first incomplete step, so it's safe to re-invoke.
 
 ## Working conventions
 
-- **Every change is a PR.** Branch protection on `main` requires four green checks; see
-  [`docs/ci.md`](./docs/ci.md).
-- **Never commit secrets** — not plaintext, not encrypted. Sensitive values live in HCP
-  workspace variables. See [`docs/secrets.md`](./docs/secrets.md).
-- **Plan before apply.** Applies are never automatic; a human (or an authenticated API
-  call) confirms in HCP.
-- Conventional Commits / Conventional Branches / Conventional PR titles.
-- Operational reference lives in [`docs/`](./docs/): `state.md`, `secrets.md`, `ci.md`,
-  `recipes.md`, `rollback.md`, `hcp-api.md`, `limits.md`.
+Conventions and the locked design decisions are **authoritative in
+[`CLAUDE.md`](./CLAUDE.md)** — read it; this file deliberately does not restate them (one
+source of truth, no drift). The essentials it covers: every change is a PR (branch
+protection on `main` needs four green checks), secrets never touch the repo (they live in
+HCP workspace variables), applies are never automatic (a human or authenticated API call
+confirms in HCP), and commits / branches / PR titles follow the Conventional * specs.
+
+Operational reference lives in [`docs/`](./docs/): `state.md`, `secrets.md`, `ci.md`,
+`recipes.md`, `rollback.md`, `hcp-api.md`, `limits.md`.

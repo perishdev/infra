@@ -1,6 +1,6 @@
 ---
 name: infra-setup
-description: "Agent-first, human-in-the-loop bootstrap for this Terraform + HCP infra repo. Use when setting up perishdev/infra (or a fork of it for another org) from scratch — wiring HCP Terraform state, the Cloudflare token, and the GitHub App, importing existing resources, and running the first plan. The agent drives end-to-end and pauses only for signups, credential minting, and secret pasting. Trigger on: 'set up infra', 'bootstrap this repo', 'run the setup wizard', 'onboard a new org', '/infra-setup'."
+description: "Agent-first, human-in-the-loop bootstrap for this Terraform + HCP infra repo. Use when setting up perishdev/infra (or a fork of it for another org) from scratch — wiring HCP Terraform state, the Cloudflare token, and the GitHub App, importing existing resources, and running the first plan. The agent drives end-to-end and pauses only for signups, credential minting, and secret pasting. Trigger on: 'set up infra', 'bootstrap this repo', 'run infra-setup', 'onboard a new org', '/infra-setup'."
 ---
 
 # infra-setup
@@ -89,6 +89,10 @@ gh --version           # GitHub CLI — repo ops, Pages, App install checks
 jq --version           # JSON wrangling for HCP/Cloudflare/GitHub APIs
 curl --version         # HCP + Cloudflare REST
 ```
+
+These are the human-readable checks; the manifest's `preflight` block in
+[`references/steps.yaml`](references/steps.yaml) enforces the version floor (Terraform ≥ 1.9)
+programmatically — run those to gate, not just `terraform version`.
 
 Then detect the credential the whole flow pivots on:
 

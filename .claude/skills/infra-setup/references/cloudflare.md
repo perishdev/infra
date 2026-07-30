@@ -1,6 +1,6 @@
 # Provider: Cloudflare (agent-first)
 
-Deep dive for [Phase 2](../SKILL.md#phase-2--cloudflare) of the setup wizard. What the
+Deep dive for [Phase 2](../SKILL.md#phase-2--cloudflare) of the infra-setup skill. What the
 agent does, what the human must do, and how to prove it. Canonical bootstrap detail:
 [`setup.md#3`](../../../../docs/setup.md#3-cloudflare-api-token). Token scopes + rotation:
 [`secrets.md`](../../../../docs/secrets.md#cloudflare-api-token-scopes).

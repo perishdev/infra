@@ -1,11 +1,14 @@
 ---
-description: Bootstrap this Terraform + HCP infra repo (or a fork for another org), agent-first with human-in-the-loop handoffs.
-allowed-tools: Read, Bash, Edit, Write, Glob, Grep, AskUserQuestion, WebFetch
+description: "Shortcut that loads the infra-setup skill — agent-first, human-in-the-loop bootstrap of this Terraform + HCP infra repo."
+allowed-tools: Read, Bash, Edit, Write, Glob, Grep, AskUserQuestion
 ---
 
 # /infra-setup
 
-Explicit entry point for the [`infra-setup`](../skills/infra-setup/SKILL.md) skill.
+Explicit entry point for the [`infra-setup`](../skills/infra-setup/SKILL.md) skill. This
+command and the skill are **the same procedure, two surfaces** — the command is the
+tab-completable trigger; the skill is what auto-loads and holds the logic. Either way you
+end up executing `SKILL.md`, so there's no divergent behaviour to reconcile.
 
 Load `../skills/infra-setup/SKILL.md` and drive it end-to-end:
 
