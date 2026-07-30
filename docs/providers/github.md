@@ -46,13 +46,18 @@ is a [locked decision](../../CLAUDE.md).
    - `github_app_pem` = full PEM contents *(sensitive)*
 
 > **Shortcut worth offering the human — the GitHub App manifest flow.** Instead of
-> clicking every permission, an App can be created from a pre-filled *manifest* so GitHub
-> presents a single "Create this App" confirmation with permissions already set. The agent
-> can generate the manifest + the `https://github.com/organizations/perishdev/settings/apps/new?state=…`
-> URL; the human just confirms and downloads the key. This trims the human clicks from
-> ~a dozen to two. Details:
+> clicking every permission, the agent can generate an App *manifest* (a JSON blob of
+> the permissions above) and hand the human a tiny local HTML page that POSTs it to
+> `https://github.com/organizations/perishdev/settings/apps/new`. GitHub then shows a
+> single "Create GitHub App" confirmation with permissions pre-filled — trimming ~a
+> dozen clicks to one. Caveat that keeps us on the manual path by default: the flow
+> redirects back with a temporary `code` that must be exchanged
+> (`POST /app-manifests/{code}/conversions`) within **one hour** to retrieve the App ID
+> and PEM — and that exchange hands the **PEM to whoever runs it**. Letting the agent do
+> the exchange would break the never-see-the-plaintext rule, so if you use the manifest
+> flow, the *human* performs the code exchange. Details:
 > <https://docs.github.com/en/apps/sharing-github-apps/registering-a-github-app-from-a-manifest>.
-> Installation + Installation-ID capture is still a browser step.
+> Installation + Installation-ID capture is a browser step either way.
 
 ## AGENT — verify
 

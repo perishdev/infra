@@ -169,7 +169,8 @@ GitHub↔HCP OAuth connection (browser).
   # oauth-token-id from the VCS connection created in the vcs-connect step
   OAUTH_TOKEN_ID=$(curl -sf "https://app.terraform.io/api/v2/organizations/$ORG/oauth-clients" \
     -H "Authorization: Bearer $HCP_TOKEN" \
-    | jq -r '.data[0].relationships["oauth-tokens"].data[0].id')
+    | jq -r '.data[0].relationships["oauth-tokens"].data[0].id // empty')
+  [ -n "$OAUTH_TOKEN_ID" ] || { echo "No VCS oauth-token found — finish the vcs-connect step first." >&2; return 1; }
 
   # Build the JSON:API payload with `jq -n` (no heredoc; safe to copy-paste, correct quoting)
   create_ws () {  # $1 = workspace name   $2 = working directory

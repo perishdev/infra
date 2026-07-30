@@ -20,9 +20,13 @@
 #   produces  the artifact/credential this step yields
 #   docs      canonical section to read for the fine print
 #
-# Placeholders assume $HCP_TOKEN is exported from ~/.terraform.d/credentials.tfrc.json
-# after step hcp-login. Values are concrete for perishdev / perish.dev — see the
-# "Porting" table in wizard.md to retarget another org.
+# RUNNER SETUP — the fields below (org, hcp_api, …) are YAML metadata, NOT shell
+# variables. Before running any `check`/`run`, export the two the commands actually
+# reference as shell vars:
+#     export hcp_api=https://app.terraform.io/api/v2
+#     export HCP_TOKEN=$(jq -r '.credentials["app.terraform.io"].token' ~/.terraform.d/credentials.tfrc.json)
+# The org slug `perishdev` is inlined literally in each command (not $org) — change it
+# there, and in hcp_api if self-hosting, when porting. See the "Porting" table in wizard.md.
 
 org: perishdev
 domain: perish.dev
@@ -34,7 +38,7 @@ managed_repos:
 preflight:
   - tool: terraform
     min: "1.9"
-    check: "terraform version | head -1"
+    check: "terraform version -json | jq -e '.terraform_version | split(\".\") | ((.[0]|tonumber) > 1) or ((.[0]|tonumber)==1 and (.[1]|tonumber) >= 9)'"
   - tool: gh
     check: "gh --version"
   - tool: jq
@@ -54,6 +58,9 @@ steps:
       1. Sign up at https://app.terraform.io/ (free tier is enough to start).
       2. Create an organization named exactly `perishdev`.
       3. Inside it, create a project named `infra`.
+    # NOTE: this check needs $HCP_TOKEN, which is only minted by the NEXT step
+    # (hcp-login) — an HCP org can't be verified without a token. On a cold run it
+    # reads red until hcp-login completes; that ordering is intentional, not a bug.
     check: 'test -n "$HCP_TOKEN" && curl -sf "$hcp_api/organizations/perishdev" -H "Authorization: Bearer $HCP_TOKEN" | jq -e ".data.id"'
     produces: HCP org `perishdev`, project `infra`
     docs: docs/setup.md#1-hcp-terraform--organization
@@ -219,7 +226,10 @@ steps:
     run: |
       Follow docs/import.md: cf-terraforming generate + import (--modern-import-block)
       into terraform/cloudflare/generated.tf, then terraform plan.
-    check: "cd terraform/cloudflare && terraform plan -input=false 2>&1 | grep -q 'will be imported' && ! terraform plan -input=false 2>&1 | grep -q 'will be created'"
+    # One plan, captured once. Success = at least one import AND zero creates.
+    # (If a change legitimately adds a brand-new resource alongside the import, review
+    # the plan by hand — this check intentionally treats any 'will be created' as not-done.)
+    check: "cd terraform/cloudflare && terraform plan -input=false -no-color >/tmp/wizard-import.plan 2>&1 && grep -q 'will be imported' /tmp/wizard-import.plan && ! grep -q 'will be created' /tmp/wizard-import.plan"
     produces: generated.tf with import blocks; plan shows imports only
     docs: docs/providers/migration.md
 

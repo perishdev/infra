@@ -62,22 +62,28 @@ cd terraform/cloudflare && terraform init && terraform plan   # green = token wo
 ## AGENT — reading account + zone IDs (porting)
 
 These are **not secrets** (they're `local`s in `terraform/cloudflare/main.tf`:
-`account_id = d8a72309…`, `zone_id = 78ff9bdc…`). When porting to a new org, the agent
-can read the new values from the Cloudflare API once a token exists:
+`account_id = d8a72309…`, `zone_id = 78ff9bdc…`), so reading them doesn't need the
+persistent Edit token — and the agent should **not** touch that token (the
+never-see-the-plaintext rule holds). Two clean ways to get the IDs when porting:
 
-```sh
-export CLOUDFLARE_API_TOKEN=...   # the freshly minted token (agent may hold it transiently for read-only calls)
+- **Human reads them off the dashboard** — account ID is in the URL / right-hand
+  sidebar; zone ID is on the domain's Overview page. Paste them back to the agent.
+- **Agent uses the short-lived *read-only* discovery token** (the same throwaway token
+  minted for migration — see [`migration.md`](./migration.md)), never the Edit token:
 
-# Account ID
-curl -sf "https://api.cloudflare.com/client/v4/accounts" \
-  -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" | jq -r '.result[0].id'
+  ```sh
+  export CF_READ_TOKEN=...   # throwaway READ token, deleted right after — NOT the HCP Edit token
 
-# Zone ID for the new domain
-curl -sf "https://api.cloudflare.com/client/v4/zones?name=<new-domain>" \
-  -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" | jq -r '.result[0].id'
-```
+  # Account ID
+  curl -sf "https://api.cloudflare.com/client/v4/accounts" \
+    -H "Authorization: Bearer $CF_READ_TOKEN" | jq -r '.result[0].id'
 
-Write these into `terraform/cloudflare/main.tf` `locals`. See the Porting table in
+  # Zone ID for the new domain
+  curl -sf "https://api.cloudflare.com/client/v4/zones?name=<new-domain>" \
+    -H "Authorization: Bearer $CF_READ_TOKEN" | jq -r '.result[0].id'
+  ```
+
+Write the results into `terraform/cloudflare/main.tf` `locals`. See the Porting table in
 [`wizard.md`](../wizard.md#porting-to-another-organization).
 
 ## Rotation
