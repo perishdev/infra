@@ -41,7 +41,9 @@ GitHub↔HCP OAuth connection (browser).
   safety toggles that matter — and *why each bites if wrong* — are in
   [`docs/setup.md#2`](../../../../docs/setup.md#2-hcp-terraform--workspaces): speculative
   plans **on**, path-scoped triggers, and — set in the UI — **fork** speculative plans
-  **off**. Ready-to-run (idempotent — a 422 means the workspace already exists, treat as ✓):
+  **off**. Ready-to-run and **genuinely idempotent** — re-running reports an existing
+  workspace as `✓ … already exists` (HCP answers a duplicate name with `422`); any other
+  HTTP status surfaces as an error instead of a silent `jq` crash:
 
   ```sh
   export HCP_TOKEN=$(jq -r '.credentials["app.terraform.io"].token' ~/.terraform.d/credentials.tfrc.json)
@@ -53,18 +55,27 @@ GitHub↔HCP OAuth connection (browser).
     -H "Authorization: Bearer $HCP_TOKEN" \
     | jq -r '.data[0].relationships["oauth-tokens"].data[0].id // empty')
 
-  # Build the JSON:API payload with `jq -n` (no heredoc; safe to copy-paste, correct quoting)
+  # jq -n builds the payload (correct quoting for free); curl -w captures the HTTP status
+  # so we can tell "created" (201) from "already exists" (422 name-taken) from a real error.
   create_ws () {  # $1 = workspace name   $2 = working directory
-    jq -n --arg name "$1" --arg dir "$2" --arg repo "$REPO" --arg tok "$OAUTH_TOKEN_ID" '
+    local resp code body
+    resp=$(jq -n --arg name "$1" --arg dir "$2" --arg repo "$REPO" --arg tok "$OAUTH_TOKEN_ID" '
       {data:{type:"workspaces",attributes:{
         name:$name, "working-directory":$dir, "execution-mode":"remote",
         "auto-apply":false, "speculative-enabled":true, "file-triggers-enabled":true,
         "trigger-patterns":[$dir+"/**"], "queue-all-runs":false, "global-remote-state":false,
         "vcs-repo":{identifier:$repo, "oauth-token-id":$tok, branch:"main"}}}}' \
-    | curl -sf -X POST "https://app.terraform.io/api/v2/organizations/$ORG/workspaces" \
-        -H "Authorization: Bearer $HCP_TOKEN" \
-        -H "Content-Type: application/vnd.api+json" -d @- \
-    | jq -r '"✓ " + .data.attributes.name + " created"'
+      | curl -s -w '\n%{http_code}' -X POST "https://app.terraform.io/api/v2/organizations/$ORG/workspaces" \
+          -H "Authorization: Bearer $HCP_TOKEN" \
+          -H "Content-Type: application/vnd.api+json" -d @-)
+    code=${resp##*$'\n'}; body=${resp%$'\n'*}     # split trailing "\n<status>" (var 'code' — zsh reserves 'status')
+    case "$code" in
+      201) echo "✓ $1 created" ;;
+      422) echo "$body" | grep -qi 'already been taken' \
+             && echo "✓ $1 already exists" \
+             || { echo "✗ $1: HTTP 422 — $(echo "$body" | jq -r '.errors[0].detail // .errors[0].title')" >&2; return 1; } ;;
+      *)   echo "✗ $1: HTTP $code — $(echo "$body" | jq -r '.errors[0].detail // .errors[0].title // .')" >&2; return 1 ;;
+    esac
   }
 
   # Gate with if/else, NOT `return`/`exit`: this block is run as a script by the agent,

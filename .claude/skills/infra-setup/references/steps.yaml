@@ -104,7 +104,9 @@ steps:
     run: |
       In HCP -> org Settings -> Version Control / VCS Providers, connect GitHub via OAuth,
       scoped to this repo only. Note the oauth-token id if the agent will script workspace creation.
-    check: 'curl -sf "$hcp_api/organizations/perishdev/oauth-clients" -H "Authorization: Bearer $HCP_TOKEN" | jq -e ".data | length > 0"'
+    # Assert a GitHub-family VCS provider specifically, not just "any oauth client" —
+    # otherwise a pre-existing GitLab/Bitbucket connection would false-green this step.
+    check: 'curl -sf "$hcp_api/organizations/perishdev/oauth-clients" -H "Authorization: Bearer $HCP_TOKEN" | jq -e "[.data[] | select(.attributes[\"service-provider\"] | test(\"github\"))] | length > 0"'
     produces: GitHub<->HCP OAuth connection
     docs: docs/setup.md#2-hcp-terraform--workspaces
 
@@ -230,10 +232,17 @@ steps:
     run: |
       Follow docs/import.md: cf-terraforming generate + import (--modern-import-block)
       into terraform/cloudflare/generated.tf, then terraform plan.
-    # One plan, captured once. Success = at least one import AND zero creates.
-    # (If a change legitimately adds a brand-new resource alongside the import, review
-    # the plan by hand — this check intentionally treats any 'will be created' as not-done.)
-    check: "cd terraform/cloudflare && terraform plan -input=false -no-color >/tmp/infra-setup-import.plan 2>&1 && grep -q 'will be imported' /tmp/infra-setup-import.plan && ! grep -q 'will be created' /tmp/infra-setup-import.plan"
+    # One plan, captured once to a private mktemp file (0600, auto-removed), not a fixed
+    # world-readable /tmp path. Success = at least one import AND zero creates. (If a change
+    # legitimately adds a new resource alongside the import, review by hand — this check
+    # intentionally treats any 'will be created' as not-done.)
+    check: |
+      cd terraform/cloudflare
+      p=$(mktemp)
+      trap 'rm -f "$p"' EXIT
+      terraform plan -input=false -no-color >"$p" 2>&1 \
+        && grep -q 'will be imported' "$p" \
+        && ! grep -q 'will be created' "$p"
     produces: generated.tf with import blocks; plan shows imports only
     docs: .claude/skills/infra-setup/references/migration.md
 
