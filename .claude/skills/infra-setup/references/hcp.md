@@ -52,7 +52,6 @@ GitHub↔HCP OAuth connection (browser).
   OAUTH_TOKEN_ID=$(curl -sf "https://app.terraform.io/api/v2/organizations/$ORG/oauth-clients" \
     -H "Authorization: Bearer $HCP_TOKEN" \
     | jq -r '.data[0].relationships["oauth-tokens"].data[0].id // empty')
-  [ -n "$OAUTH_TOKEN_ID" ] || { echo "No VCS oauth-token found — finish the vcs-connect step first." >&2; return 1; }
 
   # Build the JSON:API payload with `jq -n` (no heredoc; safe to copy-paste, correct quoting)
   create_ws () {  # $1 = workspace name   $2 = working directory
@@ -68,8 +67,15 @@ GitHub↔HCP OAuth connection (browser).
     | jq -r '"✓ " + .data.attributes.name + " created"'
   }
 
-  create_ws cloudflare terraform/cloudflare
-  create_ws github-org  terraform/github
+  # Gate with if/else, NOT `return`/`exit`: this block is run as a script by the agent,
+  # where a top-level `return` errors AND falls through (creating a broken workspace),
+  # and `exit` would kill an interactive shell if pasted. if/else is correct in every context.
+  if [ -z "$OAUTH_TOKEN_ID" ]; then
+    echo "No VCS oauth-token found — finish the vcs-connect step first; not creating workspaces." >&2
+  else
+    create_ws cloudflare terraform/cloudflare
+    create_ws github-org  terraform/github
+  fi
   ```
 
   > `trigger-patterns` (glob) requires `file-triggers-enabled: true` — that pair is the
