@@ -14,7 +14,7 @@ There are no servers, no containers, no Kubernetes manifests. Every resource map
 2. **[`README.md`](./README.md)** — what's where.
 3. **[`docs/state.md`](./docs/state.md)** — how Terraform state is structured and how to read HCP via API.
 4. **[`docs/ci.md`](./docs/ci.md)** — the required checks for any PR to land.
-5. **[`docs/setup.md`](./docs/setup.md)** — bootstrap (skip this if HCP + GitHub App are already wired; you'd know).
+5. **Bootstrap** (skip if HCP + GitHub App are already wired; you'd know). Agent-first path: run the **[`infra-setup`](./.claude/skills/infra-setup/SKILL.md)** skill (Claude Code: `/infra-setup`; other harnesses: follow the SKILL.md — see [`AGENTS.md`](./AGENTS.md)). By-hand path: **[`docs/setup.md`](./docs/setup.md)**, which the skill orchestrates.
 
 ## The PR workflow
 

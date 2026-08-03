@@ -16,7 +16,8 @@ The rest is reference, dipped into as needed.
 
 ### Setup and onboarding
 
-- [`setup.md`](./setup.md) — one-time bootstrap of HCP, Cloudflare token, GitHub App, local dev. Done once per maintainer's laptop.
+- **[`.claude/skills/infra-setup/`](../.claude/skills/infra-setup/SKILL.md) — agent-first bootstrap.** The recommended path: point an AI agent at it (Claude Code: `/infra-setup`) and it drives the whole setup, pausing only for signups, credential minting, and secret pasting. Orchestrates the two docs below. See [`../AGENTS.md`](../AGENTS.md) for non-Claude harnesses.
+- [`setup.md`](./setup.md) — the human-driven bootstrap runbook the skill orchestrates: HCP, Cloudflare token, GitHub App, local dev. Read it directly if you'd rather do it by hand.
 - [`import.md`](./import.md) — `cf-terraforming` runbook for adopting existing Cloudflare state into Terraform.
 - [`worktree-workflow.md`](./worktree-workflow.md) — optional `git worktree` convention for maintainers juggling multiple branches.
 
