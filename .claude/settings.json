@@ -1,0 +1,14 @@
+{
+  "extraKnownMarketplaces": {
+    "infra-copilot": {
+      "source": {
+        "source": "github",
+        "repo": "hasansezertasan/infra-copilot"
+      },
+      "autoUpdate": false
+    }
+  },
+  "enabledPlugins": {
+    "infra-copilot@infra-copilot": true
+  }
+}
