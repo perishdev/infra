@@ -18,9 +18,10 @@ Cloudflare token, GitHub App, importing existing resources, first plan — pausi
 a human must sign up, mint a credential, or paste a secret.
 
 - **Claude Code:** run `/infra-setup` (or just say "set up the infra").
-- **Other harnesses (opencode, Codex, …):** open and follow
-  [`.claude/skills/infra-setup/SKILL.md`](./.claude/skills/infra-setup/SKILL.md) — plain
-  Markdown plus a machine-readable manifest; see [`AGENTS.md`](./AGENTS.md).
+- **Other harnesses (opencode, Codex, …):** open and follow the
+  [infra-copilot plugin](https://github.com/hasansezertasan/infra-copilot)'s
+  `skills/infra-setup/SKILL.md` — plain Markdown plus a machine-readable manifest; see
+  [`AGENTS.md`](./AGENTS.md).
 
 It's idempotent and resumable: re-invoke any time and it re-checks state, resuming at the
 first incomplete step. For a human-driven bootstrap instead, the [infra-copilot plugin](https://github.com/hasansezertasan/infra-copilot)'s
@@ -33,8 +34,8 @@ terraform/
   cloudflare/   one HCP workspace (cloudflare),     zone + DNS
   github/       one HCP workspace (github-org),     repos + protection + labels
 .claude/
-  skills/infra-setup/   agent-first bootstrap skill (SKILL.md + references/ + steps.yaml)
-  commands/infra-setup.md   /infra-setup entry point
+  settings.json             enables the infra-copilot plugin (marketplace + plugin)
+  infra-copilot.local.md    this repo's non-secret config the plugin reads at startup
 .github/
   workflows/    fork-safe terraform fmt + validate gates
 docs/

@@ -14,7 +14,7 @@ There are no servers, no containers, no Kubernetes manifests. Every resource map
 2. **[`README.md`](./README.md)** — what's where.
 3. **The [infra-copilot plugin](https://github.com/hasansezertasan/infra-copilot)'s state reference** — how Terraform state is structured and how to read HCP via API.
 4. **The infra-copilot plugin's CI reference** — the required checks for any PR to land.
-5. **Bootstrap** (skip if HCP + GitHub App are already wired; you'd know). Agent-first path: run the **[`infra-setup`](./.claude/skills/infra-setup/SKILL.md)** skill (Claude Code: `/infra-setup`; other harnesses: follow the SKILL.md — see [`AGENTS.md`](./AGENTS.md)). By-hand path: the infra-copilot plugin's setup reference, which the skill orchestrates.
+5. **Bootstrap** (skip if HCP + GitHub App are already wired; you'd know). Agent-first path: run the **`infra-setup`** skill from the [infra-copilot plugin](https://github.com/hasansezertasan/infra-copilot) (Claude Code: `/infra-setup`; other harnesses: follow the plugin's SKILL.md — see [`AGENTS.md`](./AGENTS.md)). By-hand path: the infra-copilot plugin's setup reference, which the skill orchestrates.
 
 ## The PR workflow
 
