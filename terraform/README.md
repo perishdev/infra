@@ -37,10 +37,10 @@ There is no per-environment split today:
 
 1. Create `terraform/<concern>/` with `versions.tf`, `providers.tf`, `variables.tf`, and a resource file (`main.tf` or per-category `*.tf`).
 2. Set the `cloud { workspaces { name = "<workspace-name>" } }` block in `versions.tf`.
-3. Create the matching workspace in HCP under the `perishdev` org / `infra` project, VCS-linked to this repo, working directory set to the leaf dir, path filter `terraform/<concern>/**` (see [`../docs/setup.md`](../docs/setup.md) step 2 for the full per-workspace settings).
+3. Create the matching workspace in HCP under the `perishdev` org / `infra` project, VCS-linked to this repo, working directory set to the leaf dir, path filter `terraform/<concern>/**` (see the [infra-copilot plugin](https://github.com/hasansezertasan/infra-copilot)'s setup reference for the full per-workspace settings).
 4. Populate sensitive variables (provider tokens, credentials) in HCP.
 5. If protected status checks live on `main`, add the new workspace's check name to [`github/branch_protection.tf`](./github/branch_protection.tf) in the same PR.
-6. Open a PR; the `safe-to-plan` label gates fork-PR plans (see [`../docs/ci.md`](../docs/ci.md)).
+6. Open a PR; the `safe-to-plan` label gates fork-PR plans (see the infra-copilot plugin's CI reference).
 
 ## Conventions
 
@@ -84,6 +84,6 @@ Direct `data "..." "..." {}` between workspaces isn't supported until the `tfe` 
 ## What's not here
 
 - `terraform/modules/` — reusable building blocks. Add when the same shape is needed in two places. Don't pre-build.
-- An HCP-managing workspace (i.e. Terraform managing the HCP workspaces themselves via the `tfe` provider). Considered, deferred — the manual workspace setup is documented in [`../docs/setup.md`](../docs/setup.md) and runs once. See [Issue #8](https://github.com/perishdev/infra/issues/8).
+- An HCP-managing workspace (i.e. Terraform managing the HCP workspaces themselves via the `tfe` provider). Considered, deferred — the manual workspace setup is documented in the [infra-copilot plugin](https://github.com/hasansezertasan/infra-copilot)'s setup reference and runs once. See [Issue #8](https://github.com/perishdev/infra/issues/8).
 
-See also: [`../docs/secrets.md`](../docs/secrets.md), [`../docs/state.md`](../docs/state.md), [`../docs/ci.md`](../docs/ci.md), [`../docs/import.md`](../docs/import.md), [`../docs/recipes.md`](../docs/recipes.md).
+See also: the infra-copilot plugin's secrets, state, CI, and import references; [`../docs/decisions.md`](../docs/decisions.md); [`../docs/recipes.md`](../docs/recipes.md).

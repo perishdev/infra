@@ -81,9 +81,9 @@ Use when: there's a real fire and the gates can't be opened normally.
 If state is corrupted beyond surgery, the nuclear option is to throw away the workspace, recreate it, and re-import everything via `cf-terraforming` (Cloudflare) or by hand (GitHub).
 
 1. In HCP UI → workspace → Settings → Delete. Confirm.
-2. Recreate the workspace per [`setup.md`](./setup.md) step 2.
+2. Recreate the workspace per the [infra-copilot plugin](https://github.com/hasansezertasan/infra-copilot)'s setup reference.
 3. Reload sensitive variables.
-4. Run [`cf-terraforming`](./import.md) against the live Cloudflare state.
+4. Run `cf-terraforming` (see the infra-copilot plugin's import reference) against the live Cloudflare state.
 5. Build new `import` blocks for everything, plan, apply.
 
 This is multi-hour work and is a real outage for any apply-gated change in flight. Avoid unless options 1–5 are all impossible.

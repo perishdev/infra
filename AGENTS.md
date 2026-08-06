@@ -12,18 +12,18 @@ No servers, no config management — everything is SaaS-shaped. See [`README.md`
 
 ## Bootstrapping the repo (or a fork for another org)
 
-There is an **agent-first setup skill** at
-[`.claude/skills/infra-setup/SKILL.md`](./.claude/skills/infra-setup/SKILL.md). It drives
-the whole bootstrap — HCP, Cloudflare token, GitHub App, importing existing resources,
+There is an **agent-first setup skill** in the
+[infra-copilot plugin](https://github.com/hasansezertasan/infra-copilot) (`skills/infra-setup/SKILL.md`).
+It drives the whole bootstrap — HCP, Cloudflare token, GitHub App, importing existing resources,
 first plan — and pauses only for the steps a human must do (signups, minting credentials,
 pasting secrets).
 
 - **Claude Code:** run `/infra-setup`, or just ask to "set up the infra."
-- **Other harnesses:** open and follow
-  [`.claude/skills/infra-setup/SKILL.md`](./.claude/skills/infra-setup/SKILL.md) directly.
-  It's plain Markdown plus a machine-readable manifest
-  ([`references/steps.yaml`](./.claude/skills/infra-setup/references/steps.yaml)) — no
-  Claude-Code-specific runtime is required to walk it.
+- **Other harnesses:** open and follow the
+  [infra-copilot plugin](https://github.com/hasansezertasan/infra-copilot)'s
+  `skills/infra-setup/SKILL.md` directly. It's plain Markdown plus a machine-readable
+  manifest (that skill's `references/steps.yaml`) — no Claude-Code-specific runtime is
+  required to walk it.
 
 The skill is **idempotent and resumable**: on every run it re-checks state and resumes at
 the first incomplete step, so it's safe to re-invoke.
@@ -37,5 +37,6 @@ protection on `main` needs four green checks), secrets never touch the repo (the
 HCP workspace variables), applies are never automatic (a human or authenticated API call
 confirms in HCP), and commits / branches / PR titles follow the Conventional * specs.
 
-Operational reference lives in [`docs/`](./docs/): `state.md`, `secrets.md`, `ci.md`,
-`recipes.md`, `rollback.md`, `hcp-api.md`, `limits.md`.
+Operational reference lives in [`docs/`](./docs/): `decisions.md`, `recipes.md`,
+`rollback.md`, `limits.md`. Generic setup/import/CI/HCP-API/secrets/state procedure
+lives in the [infra-copilot plugin](https://github.com/hasansezertasan/infra-copilot).
