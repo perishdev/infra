@@ -37,5 +37,6 @@ protection on `main` needs four green checks), secrets never touch the repo (the
 HCP workspace variables), applies are never automatic (a human or authenticated API call
 confirms in HCP), and commits / branches / PR titles follow the Conventional * specs.
 
-Operational reference lives in [`docs/`](./docs/): `state.md`, `secrets.md`, `ci.md`,
-`recipes.md`, `rollback.md`, `hcp-api.md`, `limits.md`.
+Operational reference lives in [`docs/`](./docs/): `decisions.md`, `recipes.md`,
+`rollback.md`, `limits.md`. Generic setup/import/CI/HCP-API/secrets/state procedure
+lives in the [infra-copilot plugin](https://github.com/hasansezertasan/infra-copilot).

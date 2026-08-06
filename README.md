@@ -23,8 +23,8 @@ a human must sign up, mint a credential, or paste a secret.
   Markdown plus a machine-readable manifest; see [`AGENTS.md`](./AGENTS.md).
 
 It's idempotent and resumable: re-invoke any time and it re-checks state, resuming at the
-first incomplete step. For a human-driven bootstrap instead, [`docs/setup.md`](./docs/setup.md)
-is the canonical runbook the skill orchestrates.
+first incomplete step. For a human-driven bootstrap instead, the [infra-copilot plugin](https://github.com/hasansezertasan/infra-copilot)'s
+setup reference is the canonical runbook the skill orchestrates.
 
 ## Where things live
 
@@ -38,15 +38,14 @@ terraform/
 .github/
   workflows/    fork-safe terraform fmt + validate gates
 docs/
-  secrets.md    secrets store, GitHub App, rotation
-  state.md      HCP backend, workspace layout
-  ci.md         workflow contract, fork-PR policy
-  setup.md      human bootstrap runbook (the skill orchestrates this)
-  import.md     cf-terraforming runbook for adopting existing Cloudflare state
+  decisions.md  perish.dev-specific decisions + live resource IDs
+  recipes.md    common-task recipes
+  rollback.md   what to do when an apply made things worse
+  limits.md     vendor free-tier limits
 AGENTS.md       cross-harness pointer for non-Claude agents
 ```
 
-For the contracts the repo is built on — secrets, state, CI — see [`CLAUDE.md`](./CLAUDE.md). For the live design decisions table, look there first.
+For the contracts the repo is built on — secrets, state, CI — see [`CLAUDE.md`](./CLAUDE.md). For the live design decisions table, look there first. The generic setup/import/CI/HCP-API/secrets/state procedure lives in the [infra-copilot plugin](https://github.com/hasansezertasan/infra-copilot).
 
 ## Contributing
 
@@ -57,7 +56,7 @@ Branch protection requires four green checks before any merge to `main`:
 - `terraform validate (terraform/github)`
 - `Terraform Cloud/perishdev/...` (the HCP aggregated commit status)
 
-Fork PRs only get GitHub Actions; HCP plans require a maintainer to apply the `safe-to-plan` label first. See [`docs/ci.md`](./docs/ci.md) for the full policy.
+Fork PRs only get GitHub Actions; HCP plans require a maintainer to apply the `safe-to-plan` label first. See the [infra-copilot plugin](https://github.com/hasansezertasan/infra-copilot)'s CI reference for the full policy, and [`CLAUDE.md`](./CLAUDE.md) for the locked policy decision.
 
 Conventional Commits, Conventional Branches, Conventional PR titles.
 

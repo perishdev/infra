@@ -12,9 +12,9 @@ There are no servers, no containers, no Kubernetes manifests. Every resource map
 
 1. **[`CLAUDE.md`](./CLAUDE.md)** — design decisions table. Authoritative. Don't re-derive any decision listed there; if you want to change one, update the doc first.
 2. **[`README.md`](./README.md)** — what's where.
-3. **[`docs/state.md`](./docs/state.md)** — how Terraform state is structured and how to read HCP via API.
-4. **[`docs/ci.md`](./docs/ci.md)** — the required checks for any PR to land.
-5. **Bootstrap** (skip if HCP + GitHub App are already wired; you'd know). Agent-first path: run the **[`infra-setup`](./.claude/skills/infra-setup/SKILL.md)** skill (Claude Code: `/infra-setup`; other harnesses: follow the SKILL.md — see [`AGENTS.md`](./AGENTS.md)). By-hand path: **[`docs/setup.md`](./docs/setup.md)**, which the skill orchestrates.
+3. **The [infra-copilot plugin](https://github.com/hasansezertasan/infra-copilot)'s state reference** — how Terraform state is structured and how to read HCP via API.
+4. **The infra-copilot plugin's CI reference** — the required checks for any PR to land.
+5. **Bootstrap** (skip if HCP + GitHub App are already wired; you'd know). Agent-first path: run the **[`infra-setup`](./.claude/skills/infra-setup/SKILL.md)** skill (Claude Code: `/infra-setup`; other harnesses: follow the SKILL.md — see [`AGENTS.md`](./AGENTS.md)). By-hand path: the infra-copilot plugin's setup reference, which the skill orchestrates.
 
 ## The PR workflow
 
@@ -45,7 +45,7 @@ The first three run on every PR (including from forks). The HCP check fires per-
 
 ### Fork PRs
 
-A maintainer applies the `safe-to-plan` label to authorise HCP speculative plans on a fork PR. Without it, only the fork-safe GH Actions checks run. See [`docs/ci.md`](./docs/ci.md) for the threat model and what to scan for before labelling.
+A maintainer applies the `safe-to-plan` label to authorise HCP speculative plans on a fork PR. Without it, only the fork-safe GH Actions checks run. See the infra-copilot plugin's CI reference for the threat model and what to scan for before labelling.
 
 ## Where things go
 
@@ -95,7 +95,7 @@ curl -sL "https://app.terraform.io/api/v2/plans/$PLAN_ID/json-output-redacted" \
   | jq '.resource_changes[] | {address, actions: .change.actions}'
 ```
 
-Workspace IDs are in [`docs/state.md`](./docs/state.md).
+Workspace IDs are in [`docs/decisions.md`](./docs/decisions.md).
 
 ### Confirm apply via API
 
@@ -110,9 +110,9 @@ This counts as the manual confirm — same gate, scripted.
 
 ## Things to know that aren't in the design decisions
 
-- **The HCP required-status-check name (`Terraform Cloud/perishdev/repo-id-CffUfWW6H1x6Bauq`) embeds a per-installation VCS ID.** If the GitHub-HCP OAuth connection is ever rebuilt, that string changes and every PR is silently blocked until [`terraform/github/branch_protection.tf`](./terraform/github/branch_protection.tf) is updated. Lives in three places (this file, [`docs/ci.md`](./docs/ci.md), inline in the resource) so future-you finds it from any angle.
-- **GitHub Pages cert provisioning can wedge.** Fix: `gh api -X PUT repos/<owner>/<repo>/pages -f 'cname='` then re-set the CNAME. See troubleshooting in [`docs/setup.md`](./docs/setup.md).
-- **cf-terraforming is for one-time onboarding**, not steady-state. New Cloudflare resources should be written in Terraform directly, not discovered after the fact. See [`docs/import.md`](./docs/import.md).
+- **The HCP required-status-check name (`Terraform Cloud/perishdev/repo-id-CffUfWW6H1x6Bauq`) embeds a per-installation VCS ID.** If the GitHub-HCP OAuth connection is ever rebuilt, that string changes and every PR is silently blocked until [`terraform/github/branch_protection.tf`](./terraform/github/branch_protection.tf) is updated. Lives in three places (this file, [`docs/decisions.md`](./docs/decisions.md), inline in the resource) so future-you finds it from any angle.
+- **GitHub Pages cert provisioning can wedge.** Fix: `gh api -X PUT repos/<owner>/<repo>/pages -f 'cname='` then re-set the CNAME. See troubleshooting in the infra-copilot plugin's setup reference.
+- **cf-terraforming is for one-time onboarding**, not steady-state. New Cloudflare resources should be written in Terraform directly, not discovered after the fact. See the infra-copilot plugin's import reference, and [`docs/decisions.md`](./docs/decisions.md) for what was actually imported here.
 - **`tfe_workspace.*` doesn't exist yet.** HCP itself isn't Terraform-managed today; settings clicked into the UI. See [Issue #8](https://github.com/perishdev/infra/issues/8) for the planned arc.
 
 ## What not to do

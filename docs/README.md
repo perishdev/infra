@@ -2,37 +2,23 @@
 
 Operational documentation for the `perishdev/infra` repo. The [top-level `CLAUDE.md`](../CLAUDE.md) holds the locked design decisions; the docs below explain how those decisions play out in day-to-day use.
 
+Generic setup/import/CI/HCP-API/secrets/state **procedure** lives in the [infra-copilot plugin](https://github.com/hasansezertasan/infra-copilot). This directory holds perish.dev-specific operations and decisions.
+
 ## Reading order for first contact
 
 1. [`../CLAUDE.md`](../CLAUDE.md) — design decisions table. Authoritative.
 2. [`../README.md`](../README.md) — what this repo is.
 3. [`../CONTRIBUTING.md`](../CONTRIBUTING.md) — five-minute orientation for contributors and AI agents.
-4. [`state.md`](./state.md) — how HCP state is structured + the API access pattern.
-5. [`ci.md`](./ci.md) — the required-checks contract for any merge.
+4. [`decisions.md`](./decisions.md) — perish.dev-specific decisions and live resource facts.
 
 The rest is reference, dipped into as needed.
 
 ## Reference
 
-### Setup and onboarding
-
-- **[`.claude/skills/infra-setup/`](../.claude/skills/infra-setup/SKILL.md) — agent-first bootstrap.** The recommended path: point an AI agent at it (Claude Code: `/infra-setup`) and it drives the whole setup, pausing only for signups, credential minting, and secret pasting. Orchestrates the two docs below. See [`../AGENTS.md`](../AGENTS.md) for non-Claude harnesses.
-- [`setup.md`](./setup.md) — the human-driven bootstrap runbook the skill orchestrates: HCP, Cloudflare token, GitHub App, local dev. Read it directly if you'd rather do it by hand.
-- [`import.md`](./import.md) — `cf-terraforming` runbook for adopting existing Cloudflare state into Terraform.
-- [`worktree-workflow.md`](./worktree-workflow.md) — optional `git worktree` convention for maintainers juggling multiple branches.
-
-### Design contracts
-
-- [`secrets.md`](./secrets.md) — where every secret lives, how rotation works, what isn't a secret.
-- [`state.md`](./state.md) — HCP backend, workspace layout, API access from CLI.
-- [`ci.md`](./ci.md) — workflow contract, fork-PR policy, branch protection requirements.
-
-### Operations
-
+- [`decisions.md`](./decisions.md) — perish.dev-specific decisions (Cloudflare import scope) and live resource IDs (HCP org/workspace IDs, status-check ID).
+- [`limits.md`](./limits.md) — vendor free-tier limits and where the cliffs are.
 - [`recipes.md`](./recipes.md) — common-task recipes: add a DNS record, add a repo, add a label, bump a provider, cross-workspace changes.
 - [`rollback.md`](./rollback.md) — six options when an apply made things worse, ranked from cheapest to last-resort.
-- [`hcp-api.md`](./hcp-api.md) — HCP REST API toolkit. Read plan summaries, confirm applies, find runs, all from `curl`.
-- [`limits.md`](./limits.md) — vendor free-tier limits and where the cliffs are.
 
 ## When to add a new doc
 
@@ -46,6 +32,7 @@ Don't add a new file for:
 
 - One-off tasks (PR description suffices).
 - Things that duplicate provider documentation (link to the vendor instead).
+- Generic procedure that applies to any infra-copilot-managed repo — that belongs in the [infra-copilot plugin](https://github.com/hasansezertasan/infra-copilot), not here.
 - Things that contradict [`../CLAUDE.md`](../CLAUDE.md) — fix the design decisions table first, then write the doc.
 
 ## When to delete a doc

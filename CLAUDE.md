@@ -17,7 +17,7 @@ The repo is inspired by [`pypi/infra`](https://github.com/pypi/infra) but does n
 
 ## Conventions specific to this repo
 
-- **Secrets**: never commit plaintext secrets, and never commit encrypted secrets either — sensitive data lives outside the repo entirely. See [`docs/secrets.md`](./docs/secrets.md).
+- **Secrets**: never commit plaintext secrets, and never commit encrypted secrets either — sensitive data lives outside the repo entirely. See the [infra-copilot plugin](https://github.com/hasansezertasan/infra-copilot)'s secrets reference.
 - **Environments**: single Cloudflare account, single apex domain today. If/when a staging surface is added, keep it separated at the Terraform workspace level (not just the resource level) so a change to one environment can't silently apply to another.
 - **Plan before apply**: every Terraform change goes through `terraform plan` (locally or as an HCP speculative run on a PR) and is reviewed before `apply`. Production applies are never auto-applied.
 
@@ -27,12 +27,12 @@ These are the contracts the repo is built on. Don't re-derive; if changing, upda
 
 | Concern | Decision | Doc |
 |---|---|---|
-| Terraform-time secrets store | HCP Terraform workspace variables (sensitive) | [`docs/secrets.md`](./docs/secrets.md) |
-| CI-time secrets store | GitHub Actions encrypted secrets (only `TF_API_TOKEN`) | [`docs/secrets.md`](./docs/secrets.md) |
-| Terraform state backend | HCP Terraform (managed) | [`docs/state.md`](./docs/state.md) |
-| GitHub auth from Terraform | GitHub App (not PAT) | [`docs/secrets.md`](./docs/secrets.md) |
-| CI plan/apply policy | Plan-on-PR (collaborator auto, fork PRs require `safe-to-plan` label); apply gated to `main` + manual confirmation in HCP | [`docs/ci.md`](./docs/ci.md) |
-| At-rest encryption in repo | None — nothing encrypted committed; anything sensitive lives in HCP workspace variables or external stores | [`docs/secrets.md`](./docs/secrets.md) |
+| Terraform-time secrets store | HCP Terraform workspace variables (sensitive) | [infra-copilot plugin](https://github.com/hasansezertasan/infra-copilot) secrets reference |
+| CI-time secrets store | GitHub Actions encrypted secrets (only `TF_API_TOKEN`) | infra-copilot plugin secrets reference |
+| Terraform state backend | HCP Terraform (managed) | infra-copilot plugin state reference |
+| GitHub auth from Terraform | GitHub App (not PAT) | infra-copilot plugin secrets reference |
+| CI plan/apply policy | Plan-on-PR (collaborator auto, fork PRs require `safe-to-plan` label); apply gated to `main` + manual confirmation in HCP | infra-copilot plugin CI reference |
+| At-rest encryption in repo | None — nothing encrypted committed; anything sensitive lives in HCP workspace variables or external stores | infra-copilot plugin secrets reference |
 
 ## Inherited from the user's global CLAUDE.md (highlights)
 
