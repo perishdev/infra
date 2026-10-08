@@ -1,7 +1,7 @@
 # Operational decisions & live resource facts
 
 Decisions and concrete resource facts specific to the perish.dev deployment.
-The *procedure* for how any of this is done lives in the [infra-copilot plugin](https://github.com/hasansezertasan/infra-copilot); this file records what was decided and what exists for THIS infra.
+The *procedure* for how any of this is done lives in the [infra-copilot plugin](https://github.com/hasansezertasan/infra-copilot); this file records what was decided and what exists for THIS infra. Provider, auth, state, and CI decisions live in [`.infra-copilot/decisions.md`](../.infra-copilot/decisions.md).
 
 ## Cloudflare import scope (first bootstrap)
 
@@ -14,4 +14,4 @@ The *procedure* for how any of this is done lives in the [infra-copilot plugin](
 - HCP org: `perishdev`
 - Workspace `cloudflare`: `ws-WWKeFPiCAjV4STNX`
 - Workspace `github-org`: `ws-iZFBsNEsUfJPRJ1Q`
-- HCP status-check id (embedded in branch protection): `repo-id-CffUfWW6H1x6Bauq` — also set in [`.claude/infra-copilot.local.md`](../.claude/infra-copilot.local.md) and [`terraform/github/branch_protection.tf`](../terraform/github/branch_protection.tf). If the GitHub↔HCP connection is ever rebuilt this string changes and branch protection will silently block PRs until it is updated in both places.
+- HCP status-check id (embedded in branch protection): `repo-id-CffUfWW6H1x6Bauq` — also set in [`.infra-copilot/config.md`](../.infra-copilot/config.md) and [`terraform/github/branch_protection.tf`](../terraform/github/branch_protection.tf). If the GitHub↔HCP connection is ever rebuilt this string changes and branch protection will silently block PRs until it is updated in both places.

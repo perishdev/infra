@@ -35,7 +35,9 @@ terraform/
   github/       one HCP workspace (github-org),     repos + protection + labels
 .claude/
   settings.json             enables the infra-copilot plugin (marketplace + plugin)
-  infra-copilot.local.md    this repo's non-secret config the plugin reads at startup
+.infra-copilot/
+  config.md                 this repo's non-secret config the plugin reads at startup
+  decisions.md              locked / proposed design decisions, with status
 .github/
   workflows/    fork-safe terraform fmt + validate gates
 docs/
@@ -46,7 +48,7 @@ docs/
 AGENTS.md       cross-harness pointer for non-Claude agents
 ```
 
-For the contracts the repo is built on — secrets, state, CI — see [`CLAUDE.md`](./CLAUDE.md). For the live design decisions table, look there first. The generic setup/import/CI/HCP-API/secrets/state procedure lives in the [infra-copilot plugin](https://github.com/hasansezertasan/infra-copilot).
+For the contracts the repo is built on — secrets, state, CI — see [`.infra-copilot/decisions.md`](./.infra-copilot/decisions.md), including the proposed move from HCP to R2 state and GitHub Actions. The generic setup/import/CI/HCP-API/secrets/state procedure lives in the [infra-copilot plugin](https://github.com/hasansezertasan/infra-copilot).
 
 ## Contributing
 
@@ -57,7 +59,7 @@ Branch protection requires four green checks before any merge to `main`:
 - `terraform validate (terraform/github)`
 - `Terraform Cloud/perishdev/...` (the HCP aggregated commit status)
 
-Fork PRs only get GitHub Actions; HCP plans require a maintainer to apply the `safe-to-plan` label first. See the [infra-copilot plugin](https://github.com/hasansezertasan/infra-copilot)'s CI reference for the full policy, and [`CLAUDE.md`](./CLAUDE.md) for the locked policy decision.
+Fork PRs only get GitHub Actions; HCP plans require a maintainer to apply the `safe-to-plan` label first. See the [infra-copilot plugin](https://github.com/hasansezertasan/infra-copilot)'s CI reference for the full policy, and [`.infra-copilot/decisions.md`](./.infra-copilot/decisions.md) for the policy decision.
 
 Conventional Commits, Conventional Branches, Conventional PR titles.
 

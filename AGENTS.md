@@ -1,8 +1,9 @@
 # AGENTS.md
 
 Guidance for any AI coding agent (Claude Code, opencode, Codex, Cursor, …) working in
-this repo. Claude Code also reads [`CLAUDE.md`](./CLAUDE.md); the design decisions and
-conventions there are authoritative for every agent — read it first.
+this repo. Claude Code also reads [`CLAUDE.md`](./CLAUDE.md); the conventions there and the design
+decisions in [`.infra-copilot/decisions.md`](./.infra-copilot/decisions.md) are
+authoritative for every agent — read both first.
 
 ## What this repo is
 
@@ -30,8 +31,8 @@ the first incomplete step, so it's safe to re-invoke.
 
 ## Working conventions
 
-Conventions and the locked design decisions are **authoritative in
-[`CLAUDE.md`](./CLAUDE.md)** — read it; this file deliberately does not restate them (one
+Conventions are **authoritative in [`CLAUDE.md`](./CLAUDE.md)** and the design decisions
+in [`.infra-copilot/decisions.md`](./.infra-copilot/decisions.md) — read both; this file deliberately does not restate them (one
 source of truth, no drift). The essentials it covers: every change is a PR (branch
 protection on `main` needs four green checks), secrets never touch the repo (they live in
 HCP workspace variables), applies are never automatic (a human or authenticated API call
