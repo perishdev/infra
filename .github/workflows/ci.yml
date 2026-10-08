@@ -13,7 +13,9 @@ permissions:
   contents: read
 
 env:
-  TERRAFORM_VERSION: "1.9.8"
+  # Terraform comes from mise.toml + mise.lock, the single pin source for
+  # local machines and CI. Locked mode fails instead of resolving off-lock.
+  MISE_LOCKED: "1"
 
 jobs:
   fmt:
@@ -21,10 +23,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: hashicorp/setup-terraform@v3
+      - uses: jdx/mise-action@v4
         with:
-          terraform_version: ${{ env.TERRAFORM_VERSION }}
-          terraform_wrapper: false
+          install_args: terraform
       - run: terraform fmt -check -recursive terraform/
 
   validate:
@@ -38,10 +39,9 @@ jobs:
           - terraform/github
     steps:
       - uses: actions/checkout@v4
-      - uses: hashicorp/setup-terraform@v3
+      - uses: jdx/mise-action@v4
         with:
-          terraform_version: ${{ env.TERRAFORM_VERSION }}
-          terraform_wrapper: false
+          install_args: terraform
       - name: terraform init (no backend)
         working-directory: ${{ matrix.dir }}
         run: terraform init -backend=false -input=false
