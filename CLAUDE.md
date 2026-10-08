@@ -19,20 +19,13 @@ The repo is inspired by [`pypi/infra`](https://github.com/pypi/infra) but does n
 
 - **Secrets**: never commit plaintext secrets, and never commit encrypted secrets either — sensitive data lives outside the repo entirely. See the [infra-copilot plugin](https://github.com/hasansezertasan/infra-copilot)'s secrets reference.
 - **Environments**: single Cloudflare account, single apex domain today. If/when a staging surface is added, keep it separated at the Terraform workspace level (not just the resource level) so a change to one environment can't silently apply to another.
-- **Plan before apply**: every Terraform change goes through `terraform plan` (locally or as an HCP speculative run on a PR) and is reviewed before `apply`. Production applies are never auto-applied.
+- **Plan before apply**: every Terraform change goes through `terraform plan` (locally or as an HCP speculative run on a PR) and is reviewed before `apply`. Production applies are never auto-applied (until **Terraform CI apply** in [`.infra-copilot/decisions.md`](./.infra-copilot/decisions.md) is locked, which moves to auto-apply on merge with the PR's plan as the approval).
 
 ## Locked design decisions
 
-These are the contracts the repo is built on. Don't re-derive; if changing, update the linked docs first.
+The contracts the repo is built on live in [`.infra-copilot/decisions.md`](./.infra-copilot/decisions.md), one row per decision with a status (`proposed`, `locked`, `superseded`). Don't re-derive them; to change one, update that file first, in the same PR as the code it governs. Public identifiers (org, zone, account IDs) live in [`.infra-copilot/config.md`](./.infra-copilot/config.md).
 
-| Concern | Decision | Doc |
-|---|---|---|
-| Terraform-time secrets store | HCP Terraform workspace variables (sensitive) | [infra-copilot plugin](https://github.com/hasansezertasan/infra-copilot) secrets reference |
-| CI-time secrets store | GitHub Actions encrypted secrets (only `TF_API_TOKEN`) | infra-copilot plugin secrets reference |
-| Terraform state backend | HCP Terraform (managed) | infra-copilot plugin state reference |
-| GitHub auth from Terraform | GitHub App (not PAT) | infra-copilot plugin secrets reference |
-| CI plan/apply policy | Plan-on-PR (collaborator auto, fork PRs require `safe-to-plan` label); apply gated to `main` + manual confirmation in HCP | infra-copilot plugin CI reference |
-| At-rest encryption in repo | None — nothing encrypted committed; anything sensitive lives in HCP workspace variables or external stores | infra-copilot plugin secrets reference |
+The move from HCP to R2 state and GitHub Actions is recorded there as **Terraform CI migration** and is `proposed`: until a leaf cuts over, the HCP rows in that file still hold for that leaf.
 
 ## Inherited from the user's global CLAUDE.md (highlights)
 
