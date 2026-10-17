@@ -1,12 +1,13 @@
 # docs/
 
-Operational documentation for the `perishdev/infra` repo. The [top-level `CLAUDE.md`](../CLAUDE.md) holds the locked design decisions; the docs below explain how those decisions play out in day-to-day use.
+Operational documentation for the `perishdev/infra` repo. [`../.infra-copilot/decisions.md`](../.infra-copilot/decisions.md) holds the design decisions; the docs below explain how those decisions play out in day-to-day use.
 
 Generic setup/import/CI/HCP-API/secrets/state **procedure** lives in the [infra-copilot plugin](https://github.com/hasansezertasan/infra-copilot). This directory holds perish.dev-specific operations and decisions.
 
 ## Reading order for first contact
 
-1. [`../CLAUDE.md`](../CLAUDE.md) — design decisions table. Authoritative.
+1. [`../.infra-copilot/decisions.md`](../.infra-copilot/decisions.md) — design decisions, with status. Authoritative.
+   [`../CLAUDE.md`](../CLAUDE.md) — repo conventions.
 2. [`../README.md`](../README.md) — what this repo is.
 3. [`../CONTRIBUTING.md`](../CONTRIBUTING.md) — five-minute orientation for contributors and AI agents.
 4. [`decisions.md`](./decisions.md) — perish.dev-specific decisions and live resource facts.
@@ -33,7 +34,7 @@ Don't add a new file for:
 - One-off tasks (PR description suffices).
 - Things that duplicate provider documentation (link to the vendor instead).
 - Generic procedure that applies to any infra-copilot-managed repo — that belongs in the [infra-copilot plugin](https://github.com/hasansezertasan/infra-copilot), not here.
-- Things that contradict [`../CLAUDE.md`](../CLAUDE.md) — fix the design decisions table first, then write the doc.
+- Things that contradict [`../.infra-copilot/decisions.md`](../.infra-copilot/decisions.md) — fix the decision first, then write the doc.
 
 ## When to delete a doc
 
