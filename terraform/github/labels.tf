@@ -11,3 +11,13 @@ resource "github_issue_label" "infra_safe_to_plan" {
   color       = "0e8a16"
   description = "Maintainer has reviewed this fork PR; HCP may run a speculative plan."
 }
+
+# `allow-destroy` is the opt-in that lets an apply on main delete or replace
+# resources (.github/scripts/terraform_guard.py). It records intent, not
+# authorization: any writer can add it.
+resource "github_issue_label" "infra_allow_destroy" {
+  repository  = github_repository.infra.name
+  name        = "allow-destroy"
+  color       = "b60205"
+  description = "This PR's apply may delete or replace resources."
+}
