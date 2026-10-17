@@ -21,9 +21,13 @@ resource "github_branch_protection" "infra_main" {
       "terraform fmt",
       "terraform validate (terraform/cloudflare)",
       "terraform validate (terraform/github)",
+      # Aggregate job in .github/workflows/terraform-plan.yml. It always reports,
+      # and fails when a changed leaf's plan did not succeed.
+      "plan",
       # The HCP check name includes the per-installation VCS-repo ID. If
       # the GitHub connection in HCP is ever recreated, this string changes
-      # and this rule must be updated.
+      # and this rule must be updated. Removed once terraform/cloudflare cuts over
+      # from HCP too.
       "Terraform Cloud/perishdev/repo-id-CffUfWW6H1x6Bauq",
     ]
   }

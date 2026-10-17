@@ -1,0 +1,159 @@
+# Terraform plans on GitHub Actions, for leaves that have moved off HCP
+# ("Terraform CI migration" in .infra-copilot/decisions.md). terraform/cloudflare
+# still plans in HCP until its own cutover.
+#
+# Every PR gets one required check, `plan`, whatever it touches. Leaf jobs are
+# path-filtered, and a required check that a filter skips never reports and blocks
+# the PR forever, so `plan` aggregates them and always reports.
+name: terraform-plan
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: terraform-plan-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  TF_IN_AUTOMATION: "1"
+  TF_INPUT: "0"
+
+jobs:
+  changes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      # A manual run always plans: it has no PR diff to filter on.
+      github: ${{ github.event_name == 'workflow_dispatch' || steps.filter.outputs.github == 'true' }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - id: filter
+        if: github.event_name == 'pull_request'
+        uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
+        with:
+          filters: |
+            github:
+              - terraform/github/**
+              - terraform/modules/**
+              - mise.toml
+              - mise.lock
+              - .infra-copilot/config.md
+              - .github/workflows/terraform-*.yml
+              - .github/scripts/terraform_guard.py
+
+  destroy-guard-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - run: python3 -m unittest discover -s .github/scripts
+
+  plan-github:
+    needs: changes
+    # A fork's pull_request run gets no secrets, so a fork cannot plan.
+    if: >-
+      needs.changes.outputs.github == 'true' &&
+      (github.event_name != 'pull_request' ||
+       github.event.pull_request.head.repo.full_name == github.repository)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      pull-requests: write
+    defaults:
+      run:
+        working-directory: terraform/github
+    env:
+      # Object Read only on the state bucket: a PR branch can read repo secrets, so
+      # nothing at repo level may write.
+      AWS_ACCESS_KEY_ID: ${{ secrets.R2_PLAN_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_PLAN_SECRET_ACCESS_KEY }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
+        with:
+          install_args: terraform
+      - run: terraform init -no-color
+      # -lock=false: the plan key cannot write the bucket, so it cannot take a lock.
+      # Empty state is reported as a failed plan, not a green "create everything":
+      # every resource in this leaf already exists, so it means the state push is missing.
+      - id: plan
+        env:
+          # Read-only App. Scoped to this step, not the job.
+          TF_VAR_github_owner: perishdev
+          TF_VAR_github_app_id: ${{ vars.GH_PLAN_APP_ID }}
+          TF_VAR_github_app_installation_id: ${{ vars.GH_PLAN_APP_INSTALLATION_ID }}
+          TF_VAR_github_app_pem: ${{ secrets.GH_PLAN_APP_PEM }}
+        run: |
+          # Assigned first: inside `[ ]` a failed state read would look empty.
+          resources=$(terraform state list)
+          if [ -z "$resources" ]; then
+            echo "State for terraform/github is empty: push the state to R2 before planning." | tee plan.txt
+            echo "exitcode=1" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          set +e
+          terraform plan -lock=false -no-color -detailed-exitcode -out=tfplan > plan.log 2>&1
+          code=$?
+          set -e
+          if [ "$code" -eq 1 ]; then cp plan.log plan.txt; else terraform show -no-color tfplan > plan.txt; fi
+          if [ "$code" -eq 0 ] || [ "$code" -eq 2 ]; then
+            terraform show -json tfplan | python3 "$GITHUB_WORKSPACE/.github/scripts/terraform_guard.py" inspect > destroys.json
+          fi
+          echo "exitcode=$code" >> "$GITHUB_OUTPUT"
+          { echo '````'; tail -c 60000 plan.txt; echo '````'; } >> "$GITHUB_STEP_SUMMARY"
+      - name: Comment the plan on the PR
+        if: github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EXITCODE: ${{ steps.plan.outputs.exitcode }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PR: ${{ github.event.pull_request.number }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          case "$EXITCODE" in 0) status="no changes" ;; 2) status="changes" ;; *) status="**failed**" ;; esac
+          changes_arg=
+          if [ -f destroys.json ]; then changes_arg="--changes-file destroys.json"; fi
+          # shellcheck disable=SC2086
+          python3 "$GITHUB_WORKSPACE/.github/scripts/terraform_guard.py" comment \
+            --leaf github --status "$status" --sha "$HEAD_SHA" --run-url "$RUN_URL" \
+            --plan-file plan.txt $changes_arg > comment.md
+          jq -n --rawfile body comment.md '{body: $body}' > comment.json
+          marker='<!-- terraform-plan:github -->'
+          id=$(gh api --paginate "repos/$GITHUB_REPOSITORY/issues/$PR/comments" \
+            --jq ".[] | select(.user.type == \"Bot\" and (.body | startswith(\"$marker\"))) | .id" | head -n1)
+          if [ -n "$id" ]; then
+            gh api -X PATCH "repos/$GITHUB_REPOSITORY/issues/comments/$id" --input comment.json > /dev/null
+          else
+            gh api -X POST "repos/$GITHUB_REPOSITORY/issues/$PR/comments" --input comment.json > /dev/null
+          fi
+      # Only 0 (no changes) and 2 (changes) are a plan; anything else, a crash included, fails.
+      - if: steps.plan.outputs.exitcode != '0' && steps.plan.outputs.exitcode != '2'
+        run: exit 1
+
+  # The one required status check from Actions (terraform/github/branch_protection.tf).
+  plan:
+    if: always()
+    needs: [changes, destroy-guard-tests, plan-github]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - if: contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')
+        run: exit 1
+      - if: needs.changes.outputs.github == 'true' && needs.plan-github.result != 'success'
+        run: |
+          echo "::error::terraform/github changed but its plan did not succeed (see its job; a fork PR cannot plan at all)."
+          exit 1

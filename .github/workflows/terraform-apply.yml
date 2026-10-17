@@ -1,0 +1,124 @@
+# Terraform applies on GitHub Actions, for leaves that have moved off HCP
+# ("Terraform CI migration" in .infra-copilot/decisions.md).
+#
+# Auto-apply on merge: the PR's reviewed plan is the approval ("Terraform CI apply").
+# Each leaf's job runs in its terraform-<leaf> environment, which deploys from main
+# only and holds that leaf's write credentials.
+#
+# No path filter: every push to main plans every leaf and applies what changed. A
+# filter would diff only the latest push, so an apply that failed, or a queued run
+# that a later push superseded, would never be retried. The cost: drift made outside
+# Terraform (a settings change in the GitHub UI, say) is reverted by the next merge
+# to main, whichever leaf it touched, and no reviewed plan showed the revert.
+# Re-run a failed apply with workflow_dispatch on main, not "Re-run jobs" on an old
+# run: a re-run keeps its original commit, and the tip check below refuses it.
+name: terraform-apply
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# One apply at a time, never cancelled midway: a killed apply can leave the R2
+# lockfile held. GitHub keeps only the newest pending run, which is safe because
+# each run applies all of main.
+concurrency:
+  group: terraform-apply-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  TF_IN_AUTOMATION: "1"
+  TF_INPUT: "0"
+  STATE_BUCKET: perishdev-tfstate
+  R2_ENDPOINT: https://d8a72309e747515805b614574ea7f323.r2.cloudflarestorage.com
+
+jobs:
+  apply-github:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: terraform-github
+    permissions:
+      contents: read
+      pull-requests: read
+    defaults:
+      run:
+        working-directory: terraform/github
+    env:
+      # Object Read & Write on the state bucket; environment secret, main only.
+      AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      # R2 rejects the AWS CLI's default trailing checksums.
+      AWS_REQUEST_CHECKSUM_CALCULATION: WHEN_REQUIRED
+      AWS_RESPONSE_CHECKSUM_VALIDATION: WHEN_REQUIRED
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
+        with:
+          install_args: terraform
+      - run: terraform init -no-color
+      # Every resource in this leaf already exists. Empty state means the cutover's
+      # state push was skipped or went to the wrong key, and applying would try to
+      # create the whole estate again.
+      - name: Refuse to apply against empty state
+        run: |
+          # Assigned first: inside `[ ]` a failed state read would look empty.
+          resources=$(terraform state list)
+          if [ -z "$resources" ]; then
+            echo "::error::State for terraform/github is empty; refusing to apply. Push the state first."
+            exit 1
+          fi
+      # A re-run of an older run applies that run's commit, rolling back whatever
+      # merged since. Only main's current tip may apply.
+      - name: Refuse to apply a commit that is not main's tip
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tip=$(gh api "repos/$GITHUB_REPOSITORY/commits/main" --jq .sha)
+          if [ "$tip" != "$GITHUB_SHA" ]; then
+            echo "::error::This run is for $GITHUB_SHA but main is at $tip. Run the workflow on main instead."
+            exit 1
+          fi
+      # App credentials only on the steps that talk to GitHub, not the whole job.
+      - id: plan
+        name: terraform plan
+        env:
+          TF_VAR_github_owner: perishdev
+          TF_VAR_github_app_id: ${{ vars.GH_APP_ID }}
+          TF_VAR_github_app_installation_id: ${{ vars.GH_APP_INSTALLATION_ID }}
+          TF_VAR_github_app_pem: ${{ secrets.GH_APP_PEM }}
+        run: |
+          set +e
+          terraform plan -no-color -detailed-exitcode -out=tfplan
+          code=$?
+          set -e
+          if [ "$code" -ne 0 ] && [ "$code" -ne 2 ]; then exit "$code"; fi
+          echo "changed=$([ "$code" -eq 2 ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+          { echo '````'; terraform show -no-color tfplan | tail -c 60000; echo '````'; } >> "$GITHUB_STEP_SUMMARY"
+      - name: Refuse deletes and replacements without explicit opt-in
+        if: steps.plan.outputs.changed == 'true'
+        working-directory: .
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 .github/scripts/terraform_guard.py enforce --leaf github
+      # R2 has no object versioning, so keep the pre-apply state ("State backups").
+      # A bucket lifecycle rule expires backups/ after 90 days.
+      - name: Back up state before applying
+        if: steps.plan.outputs.changed == 'true'
+        run: |
+          command -v aws > /dev/null || { echo "::error::aws CLI missing on the runner"; exit 1; }
+          aws s3 cp "s3://$STATE_BUCKET/github/terraform.tfstate" \
+            "s3://$STATE_BUCKET/backups/github/$(date -u +%Y%m%dT%H%M%SZ)-${GITHUB_SHA::7}.tfstate" \
+            --endpoint-url "$R2_ENDPOINT" --region auto --only-show-errors
+      - name: terraform apply
+        if: steps.plan.outputs.changed == 'true'
+        env:
+          TF_VAR_github_owner: perishdev
+          TF_VAR_github_app_id: ${{ vars.GH_APP_ID }}
+          TF_VAR_github_app_installation_id: ${{ vars.GH_APP_INSTALLATION_ID }}
+          TF_VAR_github_app_pem: ${{ secrets.GH_APP_PEM }}
+        run: terraform apply -no-color tfplan
