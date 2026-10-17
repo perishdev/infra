@@ -98,8 +98,13 @@ jobs:
           TF_VAR_github_app_installation_id: ${{ vars.GH_PLAN_APP_INSTALLATION_ID }}
           TF_VAR_github_app_pem: ${{ secrets.GH_PLAN_APP_PEM }}
         run: |
-          # Assigned first: inside `[ ]` a failed state read would look empty.
-          resources=$(terraform state list)
+          # A key that was never written makes `state list` fail with "No state file was
+          # found!" rather than print nothing; treat only that as empty. Any other failure
+          # is a real error, so it stops here instead of looking like empty state.
+          if ! resources=$(terraform state list 2> state.err); then
+            grep -q "No state file was found" state.err || { cat state.err >&2; exit 1; }
+            resources=
+          fi
           if [ -z "$resources" ]; then
             echo "State for terraform/github is empty: push the state to R2 before planning." | tee plan.txt
             echo "exitcode=1" >> "$GITHUB_OUTPUT"
@@ -115,8 +120,9 @@ jobs:
           fi
           echo "exitcode=$code" >> "$GITHUB_OUTPUT"
           { echo '````'; tail -c 60000 plan.txt; echo '````'; } >> "$GITHUB_STEP_SUMMARY"
+      # always(): a failed plan is exactly what the PR author needs to see.
       - name: Comment the plan on the PR
-        if: github.event_name == 'pull_request'
+        if: always() && github.event_name == 'pull_request'
         env:
           GH_TOKEN: ${{ github.token }}
           EXITCODE: ${{ steps.plan.outputs.exitcode }}
@@ -124,6 +130,7 @@ jobs:
           PR: ${{ github.event.pull_request.number }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
+          [ -f plan.txt ] || echo "The plan step failed before producing a plan; see the run log." > plan.txt
           case "$EXITCODE" in 0) status="no changes" ;; 2) status="changes" ;; *) status="**failed**" ;; esac
           changes_arg=
           if [ -f destroys.json ]; then changes_arg="--changes-file destroys.json"; fi

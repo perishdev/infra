@@ -66,8 +66,13 @@ jobs:
       # create the whole estate again.
       - name: Refuse to apply against empty state
         run: |
-          # Assigned first: inside `[ ]` a failed state read would look empty.
-          resources=$(terraform state list)
+          # A key that was never written makes `state list` fail with "No state file was
+          # found!" rather than print nothing; treat only that as empty. Any other failure
+          # is a real error, so it stops here instead of looking like empty state.
+          if ! resources=$(terraform state list 2> state.err); then
+            grep -q "No state file was found" state.err || { cat state.err >&2; exit 1; }
+            resources=
+          fi
           if [ -z "$resources" ]; then
             echo "::error::State for terraform/github is empty; refusing to apply. Push the state first."
             exit 1
